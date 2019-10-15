@@ -3,6 +3,10 @@ import pandas as pd
 import numpy as np
 import datetime
 from dateutil import parser
+from matplotlib import font_manager, rc
+rc('font', family='AppleGothic')
+plt.rcParams['axes.unicode_minus'] = False
+
 
 def make_code(x):
     x = str(x)
@@ -80,17 +84,43 @@ def get_price_over_list(st_df, price):
 def get_company_code(name):
     return companies[companies['기업명']==name].index[0]
 
-def show_chart(price_df, stock_name, year_duration):
-    end_date = price_df.iloc[-1].name
-#     end_date = datetime.datetime.fromtimestamp(end_date)
-    start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    code = get_company_code(stock_name)
-    initial_money = 100000000
-    st_backtest = backtest_with_code_list(price_df, [code], start_date, end_date, initial_money)
-    plt.figure(figsize=(10, 6))
-    st_backtest['총변화율'].plot()
-    plt.show()
+# def show_chart(price_df, stock_name, year_duration):
+#     end_date = price_df.iloc[-1].name
+# #     end_date = datetime.datetime.fromtimestamp(end_date)
+#     start_date = end_date - datetime.timedelta(days=year_duration * 365)
+#     code = get_company_code(stock_name)
+#     initial_money = 100000000
+#     st_backtest = backtest_with_code_list(price_df, [code], start_date, end_date, initial_money)
+#     plt.figure(figsize=(10, 6))
+#     st_backtest['총변화율'].plot()
+#     plt.show()
 
+
+def get_company_code_list(company_df, company_name):
+    code_list = []
+    for num, name in enumerate(company_df['기업명']):
+        if company_name in name:
+            code_list.append({'code':company_df.index[num], 'name':name})
+    return code_list
+            
+def show_chart(price_df, company_df, company_name, year_duration):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=5 * 365)
+    company_list = get_company_code_list(company_df, company_name)
+    if len(company_list) == 0:
+        print('no company with name' + company_name)
+        return
+    code = company_list[0]['code']
+    name = company_list[0]['name']
+    code = code.replace('A','')
+    strategy_price = price_df[code][start_date:end_date]
+    strategy_df = pd.DataFrame({'price':strategy_price})
+    plt.figure(figsize=(10, 6))
+    strategy_df['price'].plot(label=name)
+    plt.legend()
+    plt.show()          
+
+    
 # [코드 3.15] 재무제표 데이터를 가져와 데이터프레임으로 만드는 함수 (CH3. 데이터 수집하기.ipynb)
 
 def make_fs_dataframe(firm_code):
