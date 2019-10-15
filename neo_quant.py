@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import numpy as np
+import datetime
+from dateutil import parser
 
 def make_code(x):
     x = str(x)
@@ -75,6 +77,19 @@ def get_kosdaq_list(st_df):
 def get_price_over_list(st_df, price):
     return st_df[st_df['액면가(원)'] >= price]
 
+def get_company_code(name):
+    return companies[companies['기업명']==name].index[0]
+
+def show_chart(price_df, stock_name, year_duration):
+    end_date = price_df.iloc[-1].name
+#     end_date = datetime.datetime.fromtimestamp(end_date)
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    code = get_company_code(stock_name)
+    initial_money = 100000000
+    st_backtest = backtest_with_code_list(price_df, [code], start_date, end_date, initial_money)
+    plt.figure(figsize=(10, 6))
+    st_backtest['총변화율'].plot()
+    plt.show()
 
 # [코드 3.15] 재무제표 데이터를 가져와 데이터프레임으로 만드는 함수 (CH3. 데이터 수집하기.ipynb)
 
@@ -295,6 +310,34 @@ def backtest_beta(price_df, strategy_df, start_date, end_date, initial_money):
     stock_amount = 0
     stock_pf = 0
     each_money = initial_money / len(strategy_df)
+    for code in strategy_price.columns:
+        temp = int( each_money / strategy_price[code][0] )
+        pf_stock_num[code] = temp
+        stock_amount = stock_amount + temp * strategy_price[code][0]
+        stock_pf = stock_pf + strategy_price[code] * pf_stock_num[code]
+
+    cash_amount = initial_money - stock_amount
+
+    backtest_df = pd.DataFrame({'주식포트폴리오':stock_pf})
+    backtest_df['현금포트폴리오'] = [cash_amount] * len(backtest_df)
+    backtest_df['종합포트폴리오'] = backtest_df['주식포트폴리오'] + backtest_df['현금포트폴리오']
+    backtest_df['일변화율'] = backtest_df['종합포트폴리오'].pct_change()
+    backtest_df['총변화율'] = backtest_df['종합포트폴리오']/initial_money - 1
+    
+    return backtest_df
+
+def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, initial_money):
+
+    code_list = []
+    for code in code_list_to_test:
+        code_list.append(code.replace('A',''))
+
+    strategy_price = price_df[code_list][start_date:end_date]
+
+    pf_stock_num = {}
+    stock_amount = 0
+    stock_pf = 0
+    each_money = initial_money / len(code_list)
     for code in strategy_price.columns:
         temp = int( each_money / strategy_price[code][0] )
         pf_stock_num[code] = temp
