@@ -12,7 +12,8 @@ from IPython.display import HTML
 pd.set_option('display.max_colwidth', -1)
 rc('font', family='AppleGothic')
 plt.rcParams['axes.unicode_minus'] = False
-
+pd.options.display.max_rows = 60
+%matplotlib inline
 
 def make_code(x):
     x = str(x)
@@ -121,7 +122,7 @@ def get_kosdaq_list(st_df):
 def get_price_over_list(st_df, price):
     return st_df[st_df['액면가(원)'] >= price]
 
-def get_company_code(company_df, name):
+def get_company_code(name, company_df):
     return company_df[company_df['기업명']==name].index[0]
 
 # def show_chart(price_df, stock_name, year_duration):
@@ -136,7 +137,7 @@ def get_company_code(company_df, name):
 #     plt.show()
 
 
-def get_company_code_list(company_df, company_name):
+def get_company_code_list(company_name, company_df):
     code_list = []
     for num, name in enumerate(company_df['기업명']):
         if company_name in name:
@@ -146,7 +147,7 @@ def get_company_code_list(company_df, company_name):
 def show_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    company_list = get_company_code_list(company_df, company_name)
+    company_list = get_company_code_list(company_name, company_df)
     if len(company_list) == 0:
         print('no company with name' + company_name)
         return
@@ -160,35 +161,39 @@ def show_chart(company_name, company_df, price_df, year_duration=1):
     plt.legend()
     plt.show()          
 
-def get_maximum_profit_df(price_df):
-    last_price = price_df.iloc[-1]
-    first_price = price_df['2016/10'].iloc[0]
-    price_diff_df = pd.DataFrame({last_price.name:last_price, first_price.name:first_price})
+def get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0, type='all'):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    strategy_price = price_df[start_date:end_date]
+    strategy_price = strategy_price.fillna(method='bfill')
+    last_price = strategy_price.iloc[-1]
+    first_price = strategy_price.iloc[0]
+    price_diff_df = pd.DataFrame({first_price.name:first_price, last_price.name:last_price})
     price_diff_df.index = 'A' + price_diff_df.index
     price_diff_df['diff'] = price_diff_df[last_price.name] - price_diff_df[first_price.name]
     price_diff_df = price_diff_df[price_diff_df[last_price.name] > 5000]
     price_diff_df = price_diff_df[price_diff_df['diff'] > 0]
     # price_diff_df['ratio'] = price_diff_df['diff'] / price_diff_df[first_price.name]
-    price_diff_df['ratio'] = price_diff_df[last_price.name] / price_diff_df[first_price.name]
+    price_diff_df['ratio'] = ((price_diff_df[last_price.name] / price_diff_df[first_price.name]) - 1) * 100
+    price_diff_df['ratio'] = price_diff_df['ratio'].astype(int)
     price_diff_df = price_diff_df.sort_values(by='ratio', ascending=False)
-    # price_diff_df = add_company_info(price_diff_df, companies)
-    # price_diff_df = get_kospi_list(price_diff_df)
-    price_diff_df['fs_info'] = price_diff_df.index
-    price_diff_df['fs_info'] = price_diff_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
-    price_diff_df['fr_info'] = price_diff_df.index
-    price_diff_df['fr_info'] = price_diff_df['fr_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_FinanceRatio.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=104&stkGb=701&gicode={0}" target="_blank">fr</a>'.format(x))
-    price_diff_df['iv_info'] = price_diff_df.index
-    price_diff_df['iv_info'] = price_diff_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
-    return HTML(price_diff_df.to_html(escape=False))
+    price_diff_df = add_company_info(price_diff_df, company_df)
+    if type == 'kospi':
+        price_diff_df = get_kospi_list(price_diff_df)
+    elif type == 'kosdaq':
+        price_diff_df = get_kosdaq_list(price_diff_df)
+    return price_diff_df
+#     price_diff_df['fs_info'] = price_diff_df.index
+#     price_diff_df['fs_info'] = price_diff_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
+#     price_diff_df['fr_info'] = price_diff_df.index
+#     price_diff_df['fr_info'] = price_diff_df['fr_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_FinanceRatio.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=104&stkGb=701&gicode={0}" target="_blank">fr</a>'.format(x))
+#     price_diff_df['iv_info'] = price_diff_df.index
+#     price_diff_df['iv_info'] = price_diff_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
+#     return HTML(price_diff_df.to_html(escape=False))
 
-def show_company_info(firm_name, company_df, price_df):
-    firm_code = get_company_code(companies, firm_name)
-    firm_info = companies.loc[firm_code]
-    firm_info = firm_info.to_frame(name=firm_name)
-    firm_info = firm_info.T
-    last_price = price_df[firm_code.replace('A','')].iloc[-1]
-    firm_df = firm_info.join(pd.DataFrame({'code':[firm_code]}, index=[firm_name]))
-    firm_df['price'] = [last_price]
+
+def show_company_info(company_code_list, company_df):
+    firm_df = company_df.loc[company_code_list]
     firm_df['fs_info'] = firm_df.index
     firm_df['fs_info'] = firm_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
     firm_df['fr_info'] = firm_df.index
@@ -196,7 +201,35 @@ def show_company_info(firm_name, company_df, price_df):
     firm_df['iv_info'] = firm_df.index
     firm_df['iv_info'] = firm_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
     return HTML(firm_df.to_html(escape=False))
+    
+def show_company_info_with_name(firm_name, company_df):
+    company_list = get_company_code_list(firm_name, company_df)
+    if len(company_list) == 0:
+        print('no company with name' + company_name)
+        return
+    company_list
+    code_list = []
+    for company in company_list:
+        code_list.append(company['code'])
+    return show_company_info(code_list, companies)
 
+def get_earning_rate(firm_name, company_df, price_df, year_duration=1):
+    code_list = get_company_code_list(firm_name, company_df)
+    if len(code_list) == 0:
+        return "No Company with name : " + firm_name
+    name = code_list[0]['name']
+    code = code_list[0]['code']
+    code = code.replace('A','')
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    strategy_price = price_df[code][start_date:end_date]
+    strategy_price = strategy_price.dropna()
+    last_price = strategy_price.iloc[-1]
+    first_price = strategy_price.iloc[0]
+    print(str(strategy_price.index[0])+" : "+str(first_price))
+    print(str(strategy_price.index[-1])+" : "+str(last_price))
+    profit = int((last_price/first_price - 1) * 100)
+    return name + " : " + str(profit) + '%'
 
 # [코드 3.15] 재무제표 데이터를 가져와 데이터프레임으로 만드는 함수 (CH3. 데이터 수집하기.ipynb)
 
