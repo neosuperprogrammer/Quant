@@ -86,6 +86,14 @@ def get_invest_data():
     invest_path = r'data/invest_data.xlsx'
     return get_finance_data(invest_path)
 
+def load_all_data():
+    companies = get_company_data()
+    prices = get_price_data()
+    fs_df = get_fs_data()
+    fr_df = get_fr_data()
+    iv_df = get_invest_data()
+    return companies, prices, fs_df, fr_df, iv_df
+    
 # 액면가 1000원 이상 회사 리스트 가져와서 코드앞에 A 붙이기
 # companies = get_company_info(1000)
 # companies = apply_a_type_code(companies)
@@ -135,9 +143,9 @@ def get_company_code_list(company_df, company_name):
             code_list.append({'code':company_df.index[num], 'name':name})
     return code_list
             
-def show_chart(price_df, company_df, company_name, year_duration=1):
+def show_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
-    start_date = end_date - datetime.timedelta(days=5 * 365)
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
     company_list = get_company_code_list(company_df, company_name)
     if len(company_list) == 0:
         print('no company with name' + company_name)
@@ -173,12 +181,14 @@ def get_maximum_profit_df(price_df):
     price_diff_df['iv_info'] = price_diff_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
     return HTML(price_diff_df.to_html(escape=False))
 
-def show_company_info(company_df, price_df, firm_name):
+def show_company_info(firm_name, company_df, price_df):
     firm_code = get_company_code(companies, firm_name)
     firm_info = companies.loc[firm_code]
     firm_info = firm_info.to_frame(name=firm_name)
     firm_info = firm_info.T
+    last_price = price_df[firm_code.replace('A','')].iloc[-1]
     firm_df = firm_info.join(pd.DataFrame({'code':[firm_code]}, index=[firm_name]))
+    firm_df['price'] = [last_price]
     firm_df['fs_info'] = firm_df.index
     firm_df['fs_info'] = firm_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
     firm_df['fr_info'] = firm_df.index
@@ -186,6 +196,7 @@ def show_company_info(company_df, price_df, firm_name):
     firm_df['iv_info'] = firm_df.index
     firm_df['iv_info'] = firm_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
     return HTML(firm_df.to_html(escape=False))
+
 
 # [코드 3.15] 재무제표 데이터를 가져와 데이터프레임으로 만드는 함수 (CH3. 데이터 수집하기.ipynb)
 
@@ -533,5 +544,32 @@ def get_mdd(back_test_df):
     back_test_df['MDD'] = mdd_list
     
     return back_test_df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
