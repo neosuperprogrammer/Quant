@@ -15,6 +15,9 @@ plt.rcParams['axes.unicode_minus'] = False
 pd.options.display.max_rows = 60
 %matplotlib inline
 
+my_portfolio = ['동국제강', '포스코','현대건설','GS건설','한국조선해양','OCI','미래에셋대우','삼성증권','삼성중공업','키움증권','LG화학']
+my_portfolio_code_list = ['A001230','A005490','A000720','A006360','A009540','A010060','A006800','A016360','A010140','A039490','A051910']
+
 def make_code(x):
     x = str(x)
     return 'A' + '0' * (6-len(x)) + x
@@ -73,6 +76,7 @@ def get_price_data():
     price_path = r'data/price_data.xlsx'
     price_df = pd.read_excel(price_path)
     price_df = price_df.set_index(price_df.columns[0])
+    price_df.columns = 'A' + price_df.columns 
     return price_df
 
 def get_fs_data():
@@ -125,25 +129,14 @@ def get_price_over_list(st_df, price):
 def get_company_code(name, company_df):
     return company_df[company_df['기업명']==name].index[0]
 
-# def show_chart(price_df, stock_name, year_duration):
-#     end_date = price_df.iloc[-1].name
-# #     end_date = datetime.datetime.fromtimestamp(end_date)
-#     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-#     code = get_company_code(stock_name)
-#     initial_money = 100000000
-#     st_backtest = backtest_with_code_list(price_df, [code], start_date, end_date, initial_money)
-#     plt.figure(figsize=(10, 6))
-#     st_backtest['총변화율'].plot()
-#     plt.show()
-
-
-def get_company_code_list(company_name, company_df):
+def get_company_code_list(company_name_list, company_df):
     code_list = []
-    for num, name in enumerate(company_df['기업명']):
-        if company_name in name:
-            code_list.append({'code':company_df.index[num], 'name':name})
+    for company_name in company_name_list:
+        for num, name in enumerate(company_df['기업명']):
+            if company_name in name:
+                code_list.append({'code':company_df.index[num], 'name':name})
     return code_list
-            
+
 def show_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
@@ -153,7 +146,7 @@ def show_chart(company_name, company_df, price_df, year_duration=1):
         return
     code = company_list[0]['code']
     name = company_list[0]['name']
-    code = code.replace('A','')
+#     code = code.replace('A','')
     strategy_price = price_df[code][start_date:end_date]
     strategy_df = pd.DataFrame({'price':strategy_price})
     plt.figure(figsize=(10, 6))
@@ -161,6 +154,45 @@ def show_chart(company_name, company_df, price_df, year_duration=1):
     plt.legend()
     plt.show()          
 
+def show_detail_chart(company_name, company_df, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    company_list = get_company_code_list(company_name, company_df)
+    if len(company_list) == 0:
+        print('no company with name' + company_name)
+        return
+    code = company_list[0]['code']
+    name = company_list[0]['name']
+#     code = code.replace('A','')
+    strategy_price = price_df[code][start_date:end_date]
+    strategy_df = pd.DataFrame({'price':strategy_price})
+    strategy_df
+    ma5 = strategy_df['price'].rolling(window=5).mean()
+    strategy_df['ma5'] = ma5
+    ma10 = strategy_df['price'].rolling(window=10).mean()
+    strategy_df['ma10'] = ma10
+    ma20 = strategy_df['price'].rolling(window=20).mean()
+    strategy_df['ma20'] = ma20
+    ma60 = strategy_df['price'].rolling(window=60).mean()
+    strategy_df['ma60'] = ma60
+    ma120 = strategy_df['price'].rolling(window=120).mean()
+    strategy_df['ma120'] = ma120
+    plt.figure(figsize=(20, 12))
+    # strategy_df['price'].plot(label=name)
+    plt.plot(strategy_df.index, strategy_df['price'], color='darkblue',linewidth=3.0)
+    plt.plot(strategy_df.index, strategy_df['ma5'], color='red', label='ma5')
+    plt.plot(strategy_df.index, strategy_df['ma10'], color='blue', label='ma10')
+    plt.plot(strategy_df.index, strategy_df['ma20'], color='green', label='ma20')
+    plt.plot(strategy_df.index, strategy_df['ma60'], color='cyan', label='ma60')
+    plt.plot(strategy_df.index, strategy_df['ma120'], color='yellow', label='ma120')
+    plt.title(name)
+    plt.xlabel("duration")
+    plt.ylabel("price")
+    plt.legend(loc='upper right')
+    plt.grid()
+    plt.show() 
+    
+    
 def get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0, type='all'):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
@@ -169,7 +201,7 @@ def get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0,
     last_price = strategy_price.iloc[-1]
     first_price = strategy_price.iloc[0]
     price_diff_df = pd.DataFrame({first_price.name:first_price, last_price.name:last_price})
-    price_diff_df.index = 'A' + price_diff_df.index
+#     price_diff_df.index = 'A' + price_diff_df.index
     price_diff_df['diff'] = price_diff_df[last_price.name] - price_diff_df[first_price.name]
     price_diff_df = price_diff_df[price_diff_df[last_price.name] > 5000]
     price_diff_df = price_diff_df[price_diff_df['diff'] > 0]
@@ -191,7 +223,14 @@ def get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0,
 #     price_diff_df['iv_info'] = price_diff_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
 #     return HTML(price_diff_df.to_html(escape=False))
 
-
+def show_pf_earning_rate(code_list, price_df, year_duration=1, initial_monehy=100000000):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    st_backtest = backtest_with_code_list(price_df, code_list, start_date, end_date, initial_money)
+    plt.figure(figsize=(10, 6))
+    st_backtest['총변화율'].plot()
+    plt.show()
+    
 def show_company_info(company_code_list, company_df):
     firm_df = company_df.loc[company_code_list]
     firm_df['fs_info'] = firm_df.index
@@ -202,7 +241,7 @@ def show_company_info(company_code_list, company_df):
     firm_df['iv_info'] = firm_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
     return HTML(firm_df.to_html(escape=False))
     
-def show_company_info_with_name(firm_name, company_df):
+def show_company_info_from_name(firm_name, company_df):
     company_list = get_company_code_list(firm_name, company_df)
     if len(company_list) == 0:
         print('no company with name' + company_name)
@@ -219,7 +258,7 @@ def get_earning_rate(firm_name, company_df, price_df, year_duration=1):
         return "No Company with name : " + firm_name
     name = code_list[0]['name']
     code = code_list[0]['code']
-    code = code.replace('A','')
+#     code = code.replace('A','')
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
     strategy_price = price_df[code][start_date:end_date]
@@ -442,7 +481,8 @@ def backtest_beta(price_df, strategy_df, start_date, end_date, initial_money):
 
     code_list = []
     for code in strategy_df.index:
-        code_list.append(code.replace('A',''))
+#         code_list.append(code.replace('A',''))
+        code_list.append(code)
 
     strategy_price = price_df[code_list][start_date:end_date]
 
@@ -470,7 +510,8 @@ def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, i
 
     code_list = []
     for code in code_list_to_test:
-        code_list.append(code.replace('A',''))
+#         code_list.append(code.replace('A',''))
+        code_list.append(code)
 
     strategy_price = price_df[code_list][start_date:end_date]
 
