@@ -137,6 +137,9 @@ def get_company_code_list(company_name_list, company_df):
                 code_list.append({'code':company_df.index[num], 'name':name})
     return code_list
 
+def get_company_name(company_code, company_df):
+    return company_df.loc[company_code]['기업명']
+
 def show_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
@@ -154,6 +157,19 @@ def show_chart(company_name, company_df, price_df, year_duration=1):
     plt.legend()
     plt.show()          
 
+def show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    strategy_price = price_df[company_code_list][start_date:end_date]
+    num_row = int((len(company_code_list)-1)/2)+1
+    plt.figure(figsize=(10, num_row*5))
+    for i, code in enumerate(company_code_list):
+        ax = plt.subplot(num_row, 4, i+1)
+        name = get_company_name(code, company_df)
+        ax.title.set_text(name)
+        ax.plot(strategy_price.index, strategy_price[code])
+    plt.show()
+    
 def show_detail_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
