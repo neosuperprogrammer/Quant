@@ -45,7 +45,7 @@ def get_company_data(min_price=0):
     kospi['구분'] = '코스피'
     kosdaq['구분'] = '코스닥'
     companies = pd.concat([kospi, kosdaq])
-    companies = companies[['종목코드','기업명','구분','액면가(원)','상장주식수(주)', '자본금(원)']]
+    companies = companies[['종목코드','기업명','구분','업종코드','업종','액면가(원)','상장주식수(주)', '자본금(원)']]
     companies['상장주식수(주)'] = companies['상장주식수(주)'].str.replace(',','').astype(int)
     companies['자본금(원)'] = companies['자본금(원)'].str.replace(',','').astype(int)
     companies['액면가(원)'] = companies['액면가(원)'].str.replace(',','').astype(float)
@@ -285,6 +285,47 @@ def get_earning_rate(firm_name, company_df, price_df, year_duration=1):
     print(str(strategy_price.index[-1])+" : "+str(last_price))
     profit = int((last_price/first_price - 1) * 100)
     return name + " : " + str(profit) + '%'
+
+def get_vaild_code_from_price_df(code_list, price_df):
+    new_code_list = []
+    for code in code_list:
+        if code in price_df.columns:
+            new_code_list.append(code)
+    return new_code_list        
+
+def show_business_trend(company_df, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+
+    company_df['업종코드'] = company_df['업종코드'].astype(str)
+    company_df['업종구분'] = company_df['업종코드'] + ' (' + company_df['업종'] + ')'
+    all_busi = company_df['업종구분'].unique()
+    busi_list = []
+    for busi_name in all_busi:
+        temp_list = company_df[company_df['업종구분'] == busi_name]
+        busi_list.append({'name':busi_name + ' - ' + str(len(temp_list)),'list':temp_list.index})
+
+    for i, busi in enumerate(busi_list):
+        busi_name = busi['name']
+        busi_code_list = busi['list']
+        strategy_price = price_df[get_vaild_code_from_price_df(busi_code_list, price_df)][start_date:end_date]
+        strategy_price.fillna(method='bfill')
+        busi_earning = strategy_price.sum(axis=1)
+        temp_df = pd.DataFrame({busi_name:busi_earning})
+        if i == 0:
+            total_busi_earning = temp_df
+        else:
+            total_busi_earning = pd.merge(total_busi_earning, temp_df, how='outer', left_index=True, right_index=True)
+    num_row = int((len(total_busi_earning.columns)-1)/4)+1
+    plt.figure(figsize=(6*4, num_row*6))
+    for i, busi in enumerate(total_busi_earning.columns):
+        ax = plt.subplot(num_row, 4, i+1)
+        ax.title.set_text(busi)
+        ax.plot(total_busi_earning.index, total_busi_earning[busi])
+    plt.show()    
+    
+def get_company_list_from_business_code(busi_code, company_df):
+    return company_df[company_df['업종코드'] == busi_code].index
 
 # [코드 3.15] 재무제표 데이터를 가져와 데이터프레임으로 만드는 함수 (CH3. 데이터 수집하기.ipynb)
 
