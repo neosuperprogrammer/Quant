@@ -73,10 +73,10 @@ def remove_a_from_company_code(company_df):
     return company_df.set_index(pd.Series(code_list))
 
 def get_price_data():
-    price_path = r'data/price_data.xlsx'
+    price_path = r'data/price_data_2013.xlsx'
     price_df = pd.read_excel(price_path)
     price_df = price_df.set_index(price_df.columns[0])
-    price_df.columns = 'A' + price_df.columns 
+#     price_df.columns = 'A' + price_df.columns 
     return price_df
 
 def get_fs_data():
@@ -140,10 +140,10 @@ def get_company_code_list(company_name_list, company_df):
 def get_company_name(company_code, company_df):
     return company_df.loc[company_code]['기업명']
 
-def show_chart(company_name, company_df, price_df, year_duration=1):
+def show_chart(company_name_list, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    company_list = get_company_code_list(company_name, company_df)
+    company_list = get_company_code_list(company_name_list, company_df)
     if len(company_list) == 0:
         print('no company with name' + company_name)
         return
@@ -327,6 +327,39 @@ def show_business_trend(company_df, price_df, year_duration=1):
 def get_company_list_from_business_code(busi_code, company_df):
     return company_df[company_df['업종코드'] == busi_code].index
 
+# 기존 price dataframe 을 최신 가격으로 업데이트.
+# ex) prices_update = update_prices(companies, prices, '10') 
+# 기존 price 와 신규 price 의 차이 비교
+# prices_update.merge(prices,indicator = True, left_index=True, right_index=True, how='outer').loc[lambda x : x['_merge']!='both']
+def update_origin_price_df(origin_price_df, code, count):
+    origin_prices = origin_price_df
+    price_df = make_price_dataframe(code, 'day', count)
+    price_df.index = pd.to_datetime(price_df.index)
+    price_df[code] = price_df[code].astype(float)
+    price_df_origin = pd.DataFrame({code:origin_prices[code]}) 
+    new_price_df = pd.concat([price_df_origin, price_df])
+    new_price_df = new_price_df.loc[~new_price_df.index.duplicated(keep='last')]
+    origin_prices = origin_prices.drop(code, axis=1)
+    origin_prices = pd.merge(origin_prices, new_price_df, left_index=True, right_index=True, how='outer')
+    return origin_prices
+    
+def update_prices(company_df, origin_price_df, count):
+    origin_prices = origin_price_df
+    for num, code in enumerate(company_df.index):
+        try:
+            print(num, code)
+            time.sleep(1)
+            try:
+                origin_prices = update_origin_price_df(origin_prices, code, count)
+            except requests.exceptions.Timeout:
+                time.sleep(60)
+                origin_prices = update_origin_price_df(origin_prices, code, count)
+        except ValueError:
+            continue
+        except KeyError:
+            continue
+    return origin_prices
+
 # [코드 3.15] 재무제표 데이터를 가져와 데이터프레임으로 만드는 함수 (CH3. 데이터 수집하기.ipynb)
 
 def make_fs_dataframe(firm_code):
@@ -402,8 +435,10 @@ def make_invest_dataframe(firm_code):
 #  [코드 3.40] 가격을 가져와 데이터프레임 만드는 함수 (CH3. 데이터 수집하기 2.ipynb)
 
 def make_price_dataframe(code, timeframe, count):
+    if code.startswith('A'):
+        request_code = code.replace('A','')
     url = 'https://fchart.stock.naver.com/sise.nhn?requestType=0'
-    price_url = url + '&symbol=' + code + '&timeframe=' + timeframe + '&count=' + count
+    price_url = url + '&symbol=' + request_code + '&timeframe=' + timeframe + '&count=' + count
     price_data = requests.get(price_url)
     price_data_bs = bs4.BeautifulSoup(price_data.text, 'lxml')
     item_list = price_data_bs.find_all('item')
@@ -597,7 +632,7 @@ def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, i
 def select_code_by_price(price_df, data_df, start_date):
     new_code_list = []
     for code in price_df[start_date].iloc[0].dropna().index:
-        new_code_list.append('A' + code)
+        new_code_list.append(code)
         
     selected_df =  data_df.loc[new_code_list]
     return selected_df
