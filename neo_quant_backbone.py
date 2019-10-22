@@ -1,4 +1,5 @@
 # %load neo_quant_backbone.py
+# %load neo_quant_backbone.py
 # !open .
 # %load neo_quant.py
 import pandas as pd
@@ -124,8 +125,10 @@ def get_kospi_list(company_df):
 def get_kosdaq_list(company_df):
     return company_df[company_df['구분']=='코스닥']
 
-def get_price_over_list(company_df, price):
-    return company_df[company_df['액면가(원)'] >= price]
+def _get_price_over_list(company_code_list, price_df, min_price = 0):
+    temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
+    temp_df = temp_df[temp_df['price'] > min_price]
+    return temp_df.index
 
 # str 이나 list 를 전달한다.
 def _get_company_code_list(company_name_list, company_df):
@@ -617,7 +620,8 @@ def backtest_beta(price_df, strategy_df, start_date, end_date, initial_money):
         code_list.append(code)
 
     strategy_price = price_df[code_list][start_date:end_date]
-
+    strategy_price = strategy_price.fillna(method='bfill')
+    
     pf_stock_num = {}
     stock_amount = 0
     stock_pf = 0
@@ -646,7 +650,8 @@ def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, i
         code_list.append(code)
 
     strategy_price = price_df[code_list][start_date:end_date]
-
+    strategy_price = strategy_price.fillna(method='bfill')
+    
     pf_stock_num = {}
     stock_amount = 0
     stock_pf = 0
@@ -691,7 +696,7 @@ def get_strategy_date(start_date):
 
 # [코드 5.32] 리밸런싱 백테스트 함수화 (Ch5. 백테스트.ipynb)
 
-def backtest_re(strategy, start_date, end_date, initial_money, price_df, fr_df, fs_df, num, value_type=None, value_list=None, date_range=None):
+def backtest_re(strategy, start_date, end_date, initial_money, price_df, fr_df, fs_df, invest_df, num, value_type=None, value_list=None, date_range=None):
     
     start_year = int(start_date.split('-')[0])
     end_year = int(end_date.split('-')[0])

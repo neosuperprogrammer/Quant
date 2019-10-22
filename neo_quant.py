@@ -67,7 +67,8 @@ def show_company_info(company_code_list):
 def show_company_info_by_name(firm_name):
     return _show_company_info_by_name(firm_name, companies)
     
-    
+def get_price_over_list(company_code_list, min_price = 0):
+    return _get_price_over_list(company_code_list, prices, min_price)    
     
 ########################## Strategy API ################################
     
