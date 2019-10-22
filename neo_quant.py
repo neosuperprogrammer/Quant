@@ -18,6 +18,21 @@ pd.options.display.max_rows = 60
 my_portfolio = ['동국제강', '포스코','현대건설','GS건설','한국조선해양','OCI','미래에셋대우','삼성증권','삼성중공업','키움증권','LG화학']
 my_portfolio_code_list = ['A001230','A005490','A000720','A006360','A009540','A010060','A006800','A016360','A010140','A039490','A051910']
 
+# default loading
+companies, prices, fs_df, fr_df, iv_df = load_all_data()
+
+
+
+
+
+
+
+
+
+
+
+
+
 def make_code(x):
     x = str(x)
     return 'A' + '0' * (6-len(x)) + x
@@ -28,32 +43,16 @@ def make_code2(x):
     return '0' * (6-len(x)) + x
 
 
-def get_all_company_info():
-    kospi = pd.read_excel('data/kospi.xls')
-    kosdaq = pd.read_excel('data/kosdaq.xls')
-    kospi['구분'] = '코스피'
-    kosdaq['구분'] = '코스닥'
-    companies = pd.concat([kospi, kosdaq])
-    companies = companies[['구분','종목코드','기업명']]
-#     companies['종목코드'] = companies['종목코드'].apply(modifyCompanyCode)
-    companies = companies.reset_index()
-    return companies
-
-def get_company_data(min_price=0):
-    kospi = pd.read_excel('data/kospi.xls')
-    kosdaq = pd.read_excel('data/kosdaq.xls')
-    kospi['구분'] = '코스피'
-    kosdaq['구분'] = '코스닥'
-    companies = pd.concat([kospi, kosdaq])
-    companies = companies[['종목코드','기업명','구분','업종코드','업종','액면가(원)','상장주식수(주)', '자본금(원)']]
-    companies['상장주식수(주)'] = companies['상장주식수(주)'].str.replace(',','').astype(int)
-    companies['자본금(원)'] = companies['자본금(원)'].str.replace(',','').astype(int)
-    companies['액면가(원)'] = companies['액면가(원)'].str.replace(',','').astype(float)
-    companies = companies[companies['액면가(원)'] >= min_price]
-    companies['액면가(원)'] = companies['액면가(원)'].astype(int)
-    companies = companies.set_index('종목코드')
-    companies = company_apply_a_prefix(companies)
-    return companies
+# def get_all_company_info():
+#     kospi = pd.read_excel('data/kospi.xls')
+#     kosdaq = pd.read_excel('data/kosdaq.xls')
+#     kospi['구분'] = '코스피'
+#     kosdaq['구분'] = '코스닥'
+#     companies = pd.concat([kospi, kosdaq])
+#     companies = companies[['구분','종목코드','기업명']]
+# #     companies['종목코드'] = companies['종목코드'].apply(modifyCompanyCode)
+#     companies = companies.reset_index()
+#     return companies
 
 def company_apply_a_prefix(companies):
     old_index = pd.Series(companies.index)
@@ -71,6 +70,22 @@ def remove_a_from_company_code(company_df):
         code = code.replace('A','')
         code_list.append(code)
     return company_df.set_index(pd.Series(code_list))
+
+def get_company_data(min_price=0):
+    kospi = pd.read_excel('data/kospi.xls')
+    kosdaq = pd.read_excel('data/kosdaq.xls')
+    kospi['구분'] = '코스피'
+    kosdaq['구분'] = '코스닥'
+    companies = pd.concat([kospi, kosdaq])
+    companies = companies[['종목코드','기업명','구분','업종코드','업종','액면가(원)','상장주식수(주)', '자본금(원)']]
+    companies['상장주식수(주)'] = companies['상장주식수(주)'].str.replace(',','').astype(int)
+    companies['자본금(원)'] = companies['자본금(원)'].str.replace(',','').astype(int)
+    companies['액면가(원)'] = companies['액면가(원)'].str.replace(',','').astype(float)
+    companies = companies[companies['액면가(원)'] >= min_price]
+    companies['액면가(원)'] = companies['액면가(원)'].astype(int)
+    companies = companies.set_index('종목코드')
+    companies = company_apply_a_prefix(companies)
+    return companies
 
 def get_price_data():
     price_path = r'data/price_data_2013.xlsx'
@@ -98,7 +113,7 @@ def load_all_data():
     fr_df = get_fr_data()
     iv_df = get_invest_data()
     return companies, prices, fs_df, fr_df, iv_df
-    
+
 # 액면가 1000원 이상 회사 리스트 가져와서 코드앞에 A 붙이기
 # companies = get_company_info(1000)
 # companies = apply_a_type_code(companies)
@@ -117,20 +132,26 @@ def add_company_info(st_df, companies):
 # 데이터프레임에서 회사코드로 필터링한 후 회사 정보 추가하기
 # roa_filter_info = add_company_info(filter_company(roa, companies), companies)
 
-def get_kospi_list(st_df):
-    return st_df[st_df['구분']=='코스피']
+def get_kospi_list(company_df):
+    return company_df[company_df['구분']=='코스피']
 
-def get_kosdaq_list(st_df):
-    return st_df[st_df['구분']=='코스닥']
+def get_kosdaq_list(company_df):
+    return company_df[company_df['구분']=='코스닥']
 
-def get_price_over_list(st_df, price):
-    return st_df[st_df['액면가(원)'] >= price]
+def get_price_over_list(company_df, price):
+    return company_df[company_df['액면가(원)'] >= price]
 
 def get_company_code(name, company_df):
     return company_df[company_df['기업명']==name].index[0]
 
-def get_company_code_list(company_name_list, company_df):
+# str 이나 list 를 전달한다.
+def get_company_code_list(company_name_list):
+    return _get_company_code_list(company_name_list, companies)
+
+def _get_company_code_list(company_name_list, company_df):
     code_list = []
+    if isinstance(company_name_list, str):
+        company_name_list = [company_name_list]
     for company_name in company_name_list:
         for num, name in enumerate(company_df['기업명']):
             if company_name in name:
@@ -140,10 +161,11 @@ def get_company_code_list(company_name_list, company_df):
 def get_company_name(company_code, company_df):
     return company_df.loc[company_code]['기업명']
 
-def show_chart(company_name_list, company_df, price_df, year_duration=1):
+# company_name 은 list 형태로 전달
+def show_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    company_list = get_company_code_list(company_name_list, company_df)
+    company_list = get_company_code_list(company_name, company_df)
     if len(company_list) == 0:
         print('no company with name' + company_name)
         return
@@ -170,6 +192,7 @@ def show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
         ax.plot(strategy_price.index, strategy_price[code])
     plt.show()
     
+# company_name 은 list 형태로 전달    
 def show_detail_chart(company_name, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
@@ -262,29 +285,42 @@ def show_company_info_from_name(firm_name, company_df):
     if len(company_list) == 0:
         print('no company with name' + company_name)
         return
-    company_list
+#     company_list
     code_list = []
     for company in company_list:
         code_list.append(company['code'])
     return show_company_info(code_list, companies)
 
-def get_earning_rate(firm_name, company_df, price_df, year_duration=1):
-    code_list = get_company_code_list(firm_name, company_df)
-    if len(code_list) == 0:
-        return "No Company with name : " + firm_name
-    name = code_list[0]['name']
-    code = code_list[0]['code']
-#     code = code.replace('A','')
+def get_earning_rate(company_code_list, year_duration=1):
+    return _get_earning_rate(company_code_list, companies, prices, year_duration)
+    
+def _get_earning_rate(company_code_list, company_df, price_df, year_duration=1):
+    company_selected = companies.loc[my_portfolio_code_list]
+
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    strategy_price = price_df[code][start_date:end_date]
+    
+    strategy_price = price_df[company_code_list][start_date:end_date]
     strategy_price = strategy_price.dropna()
+    strategy_price = strategy_price.fillna(method='bfill')
     last_price = strategy_price.iloc[-1]
     first_price = strategy_price.iloc[0]
-    print(str(strategy_price.index[0])+" : "+str(first_price))
-    print(str(strategy_price.index[-1])+" : "+str(last_price))
-    profit = int((last_price/first_price - 1) * 100)
-    return name + " : " + str(profit) + '%'
+
+    company_selected['profit'] = ((last_price/first_price - 1) * 100).astype(int)
+    company_selected['profit'] = company_selected['profit'].astype(str) + ' %'
+    return company_selected
+
+def get_earning_rate_by_name(firm_name, company_df, price_df, year_duration=1):
+    company_list = get_company_code_list(firm_name, company_df)
+    if len(company_list) == 0:
+        return "No Company with name : " + firm_name
+    
+    code_list = []
+    for company in company_list:
+        code_list.append(company['code'])
+
+    return get_earning_rate(code_list, company_df, price_df, year_duration)
+
 
 def get_vaild_code_from_price_df(code_list, price_df):
     new_code_list = []
@@ -326,6 +362,15 @@ def show_business_trend(company_df, price_df, year_duration=1):
     
 def get_company_list_from_business_code(busi_code, company_df):
     return company_df[company_df['업종코드'] == busi_code].index
+
+
+
+
+
+
+
+
+
 
 # 기존 price dataframe 을 최신 가격으로 업데이트.
 # ex) prices_update = update_prices(companies, prices, '10') 
