@@ -127,9 +127,6 @@ def get_kosdaq_list(company_df):
 def get_price_over_list(company_df, price):
     return company_df[company_df['액면가(원)'] >= price]
 
-def get_company_code(name, company_df):
-    return company_df[company_df['기업명']==name].index[0]
-
 # str 이나 list 를 전달한다.
 def _get_company_code_list(company_name_list, company_df):
     code_list = []
@@ -141,28 +138,35 @@ def _get_company_code_list(company_name_list, company_df):
                 code_list.append({'code':company_df.index[num], 'name':name})
     return code_list
 
-def get_company_name(company_code, company_df):
+def _get_company_code(name, company_df):
+    return company_df[company_df['기업명']==name].index[0]
+
+def _get_company_name(company_code, company_df):
     return company_df.loc[company_code]['기업명']
 
-# company_name 은 list 형태로 전달
-def _show_chart(company_name, company_df, price_df, year_duration=1):
+def _show_chart(company_code, company_df, price_df, year_duration=1, name=None):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    strategy_price = price_df[company_code][start_date:end_date]
+    strategy_df = pd.DataFrame({'price':strategy_price})
+    plt.figure(figsize=(10, 6))
+    if name == None:
+        name = company_code
+    strategy_df['price'].plot(label=name)
+    plt.legend()
+    plt.show() 
+    
+def _show_chart_by_name(company_name, company_df, price_df, year_duration=1):
     company_list = _get_company_code_list(company_name, company_df)
     if len(company_list) == 0:
         print('no company with name' + company_name)
         return
     code = company_list[0]['code']
     name = company_list[0]['name']
-#     code = code.replace('A','')
-    strategy_price = price_df[code][start_date:end_date]
-    strategy_df = pd.DataFrame({'price':strategy_price})
-    plt.figure(figsize=(10, 6))
-    strategy_df['price'].plot(label=name)
-    plt.legend()
-    plt.show()          
+    _show_chart(code, company_df, price_df, year_duration, name) 
+    
 
-def show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
+def _show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
     strategy_price = price_df[company_code_list][start_date:end_date]
@@ -170,25 +174,19 @@ def show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
     plt.figure(figsize=(10, num_row*5))
     for i, code in enumerate(company_code_list):
         ax = plt.subplot(num_row, 4, i+1)
-        name = get_company_name(code, company_df)
+        name = _get_company_name(code, company_df)
         ax.title.set_text(name)
         ax.plot(strategy_price.index, strategy_price[code])
     plt.show()
-    
-# company_name 은 list 형태로 전달    
-def show_detail_chart(company_name, company_df, price_df, year_duration=1):
+       
+
+
+def _show_detail_chart(company_code, company_df, price_df, year_duration=1, name=None):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    company_list = get_company_code_list(company_name, company_df)
-    if len(company_list) == 0:
-        print('no company with name' + company_name)
-        return
-    code = company_list[0]['code']
-    name = company_list[0]['name']
-#     code = code.replace('A','')
-    strategy_price = price_df[code][start_date:end_date]
+    strategy_price = price_df[company_code][start_date:end_date]
     strategy_df = pd.DataFrame({'price':strategy_price})
-    strategy_df
+#     strategy_df
     ma5 = strategy_df['price'].rolling(window=5).mean()
     strategy_df['ma5'] = ma5
     ma10 = strategy_df['price'].rolling(window=10).mean()
@@ -201,6 +199,8 @@ def show_detail_chart(company_name, company_df, price_df, year_duration=1):
     strategy_df['ma120'] = ma120
     plt.figure(figsize=(20, 12))
     # strategy_df['price'].plot(label=name)
+    if name == None:
+        name = company_code
     plt.plot(strategy_df.index, strategy_df['price'], color='darkblue',linewidth=3.0)
     plt.plot(strategy_df.index, strategy_df['ma5'], color='red', label='ma5')
     plt.plot(strategy_df.index, strategy_df['ma10'], color='blue', label='ma10')
@@ -214,38 +214,53 @@ def show_detail_chart(company_name, company_df, price_df, year_duration=1):
     plt.grid()
     plt.show() 
     
+
+
+def _show_detail_chart_by_name(company_name, company_df, price_df, year_duration=1):
+    company_list = _get_company_code_list(company_name, company_df)
+    if len(company_list) == 0:
+        print('no company with name' + company_name)
+        return
+    code = company_list[0]['code']
+    name = company_list[0]['name']
+    _show_detail_chart(code, company_df, price_df, year_duration, name)    
     
-def get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0, type='all'):
+    
+def _get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0, min_profit=0, type='all'):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
+    
     strategy_price = price_df[start_date:end_date]
     strategy_price = strategy_price.fillna(method='bfill')
+    
     last_price = strategy_price.iloc[-1]
     first_price = strategy_price.iloc[0]
+    
     price_diff_df = pd.DataFrame({first_price.name:first_price, last_price.name:last_price})
-#     price_diff_df.index = 'A' + price_diff_df.index
+    price_diff_df = price_diff_df[price_diff_df[last_price.name] > min_price]
+    
     price_diff_df['diff'] = price_diff_df[last_price.name] - price_diff_df[first_price.name]
-    price_diff_df = price_diff_df[price_diff_df[last_price.name] > 5000]
-    price_diff_df = price_diff_df[price_diff_df['diff'] > 0]
+#     price_diff_df = price_diff_df[price_diff_df['diff'] > 0]
+    
     # price_diff_df['ratio'] = price_diff_df['diff'] / price_diff_df[first_price.name]
     price_diff_df['ratio'] = ((price_diff_df[last_price.name] / price_diff_df[first_price.name]) - 1) * 100
     price_diff_df['ratio'] = price_diff_df['ratio'].astype(int)
+    
+    price_diff_df = price_diff_df[price_diff_df['ratio'] > min_profit]
+    
     price_diff_df = price_diff_df.sort_values(by='ratio', ascending=False)
+    
     price_diff_df = add_company_info(price_diff_df, company_df)
+    
     if type == 'kospi':
         price_diff_df = get_kospi_list(price_diff_df)
     elif type == 'kosdaq':
         price_diff_df = get_kosdaq_list(price_diff_df)
+        
     return price_diff_df
-#     price_diff_df['fs_info'] = price_diff_df.index
-#     price_diff_df['fs_info'] = price_diff_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
-#     price_diff_df['fr_info'] = price_diff_df.index
-#     price_diff_df['fr_info'] = price_diff_df['fr_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_FinanceRatio.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=104&stkGb=701&gicode={0}" target="_blank">fr</a>'.format(x))
-#     price_diff_df['iv_info'] = price_diff_df.index
-#     price_diff_df['iv_info'] = price_diff_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
-#     return HTML(price_diff_df.to_html(escape=False))
 
-def show_pf_earning_rate(code_list, price_df, year_duration=1, initial_monehy=100000000):
+
+def _show_earning_chart(code_list, price_df, year_duration=1, initial_money=100000000):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
     st_backtest = backtest_with_code_list(price_df, code_list, start_date, end_date, initial_money)
@@ -253,7 +268,7 @@ def show_pf_earning_rate(code_list, price_df, year_duration=1, initial_monehy=10
     st_backtest['총변화율'].plot()
     plt.show()
     
-def show_company_info(company_code_list, company_df):
+def _show_company_info(company_code_list, company_df):
     firm_df = company_df.loc[company_code_list]
     firm_df['fs_info'] = firm_df.index
     firm_df['fs_info'] = firm_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
@@ -263,8 +278,8 @@ def show_company_info(company_code_list, company_df):
     firm_df['iv_info'] = firm_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
     return HTML(firm_df.to_html(escape=False))
     
-def show_company_info_from_name(firm_name, company_df):
-    company_list = get_company_code_list(firm_name, company_df)
+def _show_company_info_by_name(firm_name, company_df):
+    company_list = _get_company_code_list(firm_name, company_df)
     if len(company_list) == 0:
         print('no company with name' + company_name)
         return
@@ -272,7 +287,7 @@ def show_company_info_from_name(firm_name, company_df):
     code_list = []
     for company in company_list:
         code_list.append(company['code'])
-    return show_company_info(code_list, companies)
+    return _show_company_info(code_list, companies)
 
 def _show_earning_rate(company_code_list, company_df, price_df, year_duration=1):
     company_selected = companies.loc[company_code_list]
