@@ -796,7 +796,92 @@ def get_mdd(back_test_df):
 
 
 
+# company_code = get_company_code('GS')
+# st_df = get_price_df(company_code, prices, 1)
+# st_df = get_monthly_price_df(company_code, prices, 1)
+# st_df = add_weighted_moving_average(st_df, 5)
+# st_df = add_moving_avererge(st_df, 5)
+# st_df = add_exponential_moving_average(st_df, 5)
+# show_price_chart(st_df, 'GS')
 
+def weighted_mean(weightArray):
+    def inner(x):
+        return (weightArray*x).mean()
+    return inner
+
+def add_weighted_moving_average(st_df, n):
+    if 'price' not in st_df:
+        print('price column not exist')
+        return st_df
+    t = [v for v in np.arange(1, n+1)]
+    sumv = sum(t)/n
+    wts = np.array(t)/sumv
+    wMov = st_df['price'].rolling(n).apply(weighted_mean(wts), raw=True)
+    st_df['wMov' + str(n)] = wMov
+    return st_df
+
+def add_moving_avererge(st_df, n):
+    if 'price' not in st_df:
+        print('price column not exist')
+        return st_df
+    Mov = st_df['price'].rolling(window=n).mean()
+    st_df['Mov'+str(n)] = Mov
+    return st_df
+
+def add_exponential_moving_average(st_df, n):
+    if 'price' not in st_df:
+        print('price column not exist')
+        return st_df
+    eMov = st_df['price'].ewm(span=n).mean()
+    st_df['eMov'+str(n)] = eMov
+    return st_df
+
+
+def get_price_df(company_code, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+
+    strategy_price = price_df[company_code][start_date:end_date]
+    strategy_df = pd.DataFrame({'price':strategy_price})
+    return strategy_df
+
+def get_monthly_price_df(company_code, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+
+    strategy_price = price_df[company_code][start_date:end_date]
+    strategy_df = pd.DataFrame({'price':strategy_price})
+
+    start_year = start_date.strftime("%Y")
+    end_year= end_date.strftime("%Y")
+
+    first = True
+    for year in range(int(start_year), int(end_year)+1):
+        for month in range(1,13):
+            year_month = "%d-%02d" % (year, month)
+            if year_month in strategy_df.index:
+                temp_df = pd.DataFrame(strategy_df.loc[year_month].iloc[0]).T
+                if first:
+                    month_df = temp_df
+                    first = False
+                else:
+                    month_df = pd.concat([month_df, temp_df])
+    return month_df
+
+def show_price_chart(st_df, name=None):
+    plt.figure(figsize=(40, 20))
+    plt.rcParams.update({'font.size': 22})
+    plt.plot(st_df.index, st_df['price'], linewidth=3.0)
+    for column in st_df.columns[1:len(st_df.columns)+1]:
+        plt.plot(st_df.index, st_df[column], label=column)
+    if name != None:
+        plt.title(name)
+    plt.xlabel("duration")
+    plt.ylabel("price")
+    plt.legend(loc='upper right')
+    # plt.grid()
+    plt.show()
+    
 
 
 
