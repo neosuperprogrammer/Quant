@@ -799,9 +799,10 @@ def get_mdd(back_test_df):
 # company_code = get_company_code('GS')
 # st_df = get_price_df(company_code, prices, 1)
 # st_df = get_monthly_price_df(company_code, prices, 1)
-# st_df = add_weighted_moving_average(st_df, 5)
+# st_df = get_weekly_price_df(company_code, prices, 1)
 # st_df = add_moving_avererge(st_df, 5)
 # st_df = add_exponential_moving_average(st_df, 5)
+# st_df = add_weighted_moving_average(st_df, 5)
 # show_price_chart(st_df, 'GS')
 
 def weighted_mean(weightArray):
@@ -844,6 +845,25 @@ def get_price_df(company_code, price_df, year_duration=1):
     strategy_price = price_df[company_code][start_date:end_date]
     strategy_df = pd.DataFrame({'price':strategy_price})
     return strategy_df
+
+def get_weekly_price_df(company_code, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+
+    strategy_price = price_df[company_code][start_date:end_date]
+    strategy_df = pd.DataFrame({'price':strategy_price})
+
+    first_week_day_list = []
+
+    prev_weekday_num = 5
+    for date in strategy_df.index:
+        weekday_num = date.weekday()
+        if weekday_num < prev_weekday_num:
+            first_week_day_list.append(date)
+        prev_weekday_num = weekday_num
+
+    weekly_price_df = strategy_df.loc[first_week_day_list]
+    return weekly_price_df
 
 def get_monthly_price_df(company_code, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
