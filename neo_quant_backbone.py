@@ -821,7 +821,7 @@ def add_weighted_moving_average(st_df, n):
     st_df['wMov' + str(n)] = wMov
     return st_df
 
-def add_moving_avererge(st_df, n):
+def add_moving_average(st_df, n):
     if 'price' not in st_df:
         print('price column not exist')
         return st_df
@@ -863,6 +863,8 @@ def get_weekly_price_df(company_code, price_df, year_duration=1):
         prev_weekday_num = weekday_num
 
     weekly_price_df = strategy_df.loc[first_week_day_list]
+    weekly_price_df = pd.DataFrame({'price':weekly_price_df})
+
     return weekly_price_df
 
 def get_monthly_price_df(company_code, price_df, year_duration=1):
@@ -887,6 +889,26 @@ def get_monthly_price_df(company_code, price_df, year_duration=1):
                 else:
                     month_df = pd.concat([month_df, temp_df])
     return month_df
+
+def get_yearly_price_df(company_code, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+
+    strategy_price = price_df[company_code][start_date:end_date]
+
+    start_year = start_date.strftime("%Y")
+    end_year= end_date.strftime("%Y")
+
+    first_year_day_list = []
+
+    for year in range(int(start_year), int(end_year)+1):
+        if str(year) in strategy_price.index:
+            first_day_of_year = strategy_price.loc[str(year)].index[0]
+            first_year_day_list.append(first_day_of_year)
+    first_year_day_list.append(end_date)
+    yearly_price_df = strategy_price.loc[first_year_day_list]
+    yearly_price_df = pd.DataFrame({'price':yearly_price_df})
+    return yearly_price_df
 
 def show_price_chart(st_df, name=None):
     plt.figure(figsize=(40, 20))
