@@ -1,7 +1,5 @@
-# %load neo_quant_backbone.py
-# %load neo_quant_backbone.py
 # !open .
-# %load neo_quant.py
+# %load neo_quant_backbone.py
 import pandas as pd
 import numpy as np
 import requests
@@ -12,7 +10,7 @@ import matplotlib.pyplot as plt
 from dateutil import parser
 from matplotlib import font_manager, rc
 from IPython.display import HTML
-# pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', -1)
 # rc('font', family='AppleGothic')
 # plt.rcParams['axes.unicode_minus'] = False
 # pd.options.display.max_rows = 60
@@ -168,7 +166,47 @@ def _show_chart_by_name(company_name, company_df, price_df, year_duration=1):
     name = company_list[0]['name']
     _show_chart(code, company_df, price_df, year_duration, name) 
     
+def _show_monthly_chart(company_code, company_df, price_df, year_duration=1):
+    end_date = price_df.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=year_duration * 365)
 
+    start_year = start_date.strftime("%Y")
+    end_year= end_date.strftime("%Y")
+    
+    first = True
+    for year in range(int(start_year), int(end_year)+1):
+        for month in range(1,13):
+            year_month = "%d-%02d" % (year, month)
+#             print(year_month)
+            if year_month in price_df.index:
+                temp_df = pd.DataFrame(price_df.loc[year_month].iloc[0]).T
+                if first:
+                    month_df = temp_df
+                    first = False
+                else:
+                    month_df = pd.concat([month_df, temp_df])
+
+    strategy_df = pd.DataFrame({'price':month_df[company_code]})
+    ma3 = strategy_df['price'].rolling(window=3).mean()
+    strategy_df['ma3'] = ma3
+
+#     plt.figure(figsize=(10, 6))
+    name = _get_company_name(company_code, company_df)
+#     strategy_df['price'].plot(label=name)
+
+    plt.figure(figsize=(20, 12))
+    
+    plt.plot(strategy_df.index, strategy_df['price'], color='darkblue',linewidth=3.0)
+    plt.plot(strategy_df.index, strategy_df['ma3'], color='red', label='ma3')
+
+    plt.title(name)
+    plt.xlabel("duration")
+    plt.ylabel("price")
+    plt.legend(loc='upper right')
+    plt.grid()
+    plt.show() 
+
+    
 def _show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)

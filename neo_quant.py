@@ -1,5 +1,4 @@
 # %load neo_quant.py
-# %load neo_quant.py
 import pandas as pd
 import numpy as np
 # import requests
@@ -49,6 +48,9 @@ def show_chart_by_name(company_name, year_duration=1):
 def show_chart(company_code, year_duration=1):
     _show_chart(company_code, companies, prices, year_duration)
 
+def show_monthly_chart(company_code, year_duration=1):
+    _show_monthly_chart(company_code, companies, prices, year_duration)
+    
 def show_detail_chart_by_name(company_name, year_duration=1):
     _show_detail_chart_by_name(company_name, companies, prices, year_duration)
     
