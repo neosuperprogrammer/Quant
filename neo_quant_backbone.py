@@ -92,11 +92,11 @@ def get_invest_data():
 
 def load_all_data():
     companies = get_company_data()
-    prices = get_price_data()
     fs_df = get_fs_data()
     fr_df = get_fr_data()
     iv_df = get_invest_data()
-    return companies, prices, fs_df, fr_df, iv_df
+    prices = get_price_data()
+    return companies, fs_df, fr_df, iv_df, prices 
 
 # 액면가 1000원 이상 회사 리스트 가져와서 코드앞에 A 붙이기
 # companies = get_company_info(1000)
@@ -596,7 +596,7 @@ def check_IFRS(x):
 
 #  [코드 4.14] PER기준으로 오름차순으로 정렬하여 주는 함수 (CH4. 전략 구현하기.ipynb)
 
-def low_per(invest_df, index_date, num):
+def _low_per(invest_df, index_date, num):
     invest_df[(index_date, 'PER')] = pd.to_numeric(invest_df[(index_date, 'PER')])
     per_sorted = invest_df.sort_values(by=(index_date, 'PER'))
     return per_sorted[index_date][:num]

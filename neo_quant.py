@@ -22,7 +22,7 @@ my_portfolio = ['동국제강', '포스코','현대건설','GS건설','한국조
 my_portfolio_code_list = ['A001230','A005490','A000720','A006360','A009540','A010060','A006800','A016360','A010140','A039490','A051910']
 
 # default loading
-# companies, prices, fs_df, fr_df, iv_df = load_all_data()
+# companies, fs_df, fr_df, iv_df, prices = load_all_data()
 
 ########################## Basic API ################################
 
@@ -133,6 +133,9 @@ def get_price_over_list(company_code_list, min_price = 0, check_month=None):
     return _get_price_over_list(company_code_list, prices, min_price, check_month)    
     
 ########################## Strategy API ################################
+    
+def low_per(index_date, num=None):
+    return _low_per(iv_df, index_date, num)
     
 def show_business_trend(year_duration=1):
     _show_business_trend(companies, prices, year_duration)
