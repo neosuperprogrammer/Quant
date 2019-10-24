@@ -110,8 +110,22 @@ def filter_company(st_df, companies):
 
     return st_df.loc[new_company_list]
 
-def _get_price_over_list(company_code_list, price_df, min_price = 0):
-    temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
+# def _get_price_over_list(company_code_list, price_df, check_date=None, min_price = 0):
+#     if check_date == None:
+#         temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
+#     else:
+#         temp_df = pd.DataFrame({'price':price_df[company_code_list].loc[-1]})
+#     temp_df = temp_df[temp_df['price'] > min_price]
+#     return temp_df.index
+
+def _get_price_over_list(company_code_list, price_df, min_price = 0, check_month=None):
+    if check_month == None:
+        temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
+    else:
+        if check_month in price_df.index:
+            temp_df = pd.DataFrame({'price':price_df[company_code_list].loc[check_month].iloc[-1]})
+        else:
+            temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
     temp_df = temp_df[temp_df['price'] > min_price]
     return temp_df.index
 
@@ -150,14 +164,6 @@ def _get_company_name(company_code, company_df):
 #     strategy_df['price'].plot(label=name)
 #     plt.legend()
 #     plt.show() 
-
-def _iterable(obj):
-    try:
-        iterator = iter(obj)
-    except TypeError:
-        return False
-    else:
-        return True
 
 def _show_chart(company_code, price_df, company_df, start_date, end_date, name=None):
     if isinstance(company_code, str):
@@ -328,9 +334,9 @@ def _get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0
 def _show_earning_chart(code_list, price_df, year_duration=1, initial_money=100000000):
     end_date = price_df.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    st_backtest = backtest_with_code_list(price_df, code_list, start_date, end_date, initial_money)
+    st_backtest = _backtest_with_code_list(code_list, price_df, start_date, end_date, initial_money)
     plt.figure(figsize=(10, 6))
-    st_backtest['총변화율'].plot()
+    st_backtest['total_change_rate'].plot()
     plt.show()
     
 def _show_company_info(company_code_list, company_df, price_df):
@@ -705,16 +711,41 @@ def backtest_beta(price_df, strategy_df, start_date, end_date, initial_money):
     
     return backtest_df
 
-def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, initial_money):
+# def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, initial_money):
 
-    code_list = []
-    for code in code_list_to_test:
-#         code_list.append(code.replace('A',''))
-        code_list.append(code)
+#     code_list = []
+#     for code in code_list_to_test:
+# #         code_list.append(code.replace('A',''))
+#         code_list.append(code)
 
+#     strategy_price = price_df[code_list][start_date:end_date]
+#     strategy_price = strategy_price.fillna(method='bfill')
+    
+#     pf_stock_num = {}
+#     stock_amount = 0
+#     stock_pf = 0
+#     each_money = initial_money / len(code_list)
+#     for code in strategy_price.columns:
+#         temp = int( each_money / strategy_price[code][0] )
+#         pf_stock_num[code] = temp
+#         stock_amount = stock_amount + temp * strategy_price[code][0]
+#         stock_pf = stock_pf + strategy_price[code] * pf_stock_num[code]
+
+#     cash_amount = initial_money - stock_amount
+
+#     backtest_df = pd.DataFrame({'주식포트폴리오':stock_pf})
+#     backtest_df['현금포트폴리오'] = [cash_amount] * len(backtest_df)
+#     backtest_df['종합포트폴리오'] = backtest_df['주식포트폴리오'] + backtest_df['현금포트폴리오']
+#     backtest_df['일변화율'] = backtest_df['종합포트폴리오'].pct_change()
+#     backtest_df['총변화율'] = backtest_df['종합포트폴리오']/initial_money - 1
+    
+#     return backtest_df
+
+def _backtest_with_code_list(code_list, price_df, start_date, end_date, initial_money):
     strategy_price = price_df[code_list][start_date:end_date]
     strategy_price = strategy_price.fillna(method='bfill')
-    
+    strategy_price = strategy_price.dropna(axis=1)
+
     pf_stock_num = {}
     stock_amount = 0
     stock_pf = 0
@@ -727,12 +758,12 @@ def backtest_with_code_list(price_df, code_list_to_test, start_date, end_date, i
 
     cash_amount = initial_money - stock_amount
 
-    backtest_df = pd.DataFrame({'주식포트폴리오':stock_pf})
-    backtest_df['현금포트폴리오'] = [cash_amount] * len(backtest_df)
-    backtest_df['종합포트폴리오'] = backtest_df['주식포트폴리오'] + backtest_df['현금포트폴리오']
-    backtest_df['일변화율'] = backtest_df['종합포트폴리오'].pct_change()
-    backtest_df['총변화율'] = backtest_df['종합포트폴리오']/initial_money - 1
-    
+    backtest_df = pd.DataFrame({'stock_portfolio':stock_pf})
+    backtest_df['cash_portfolio'] = [cash_amount] * len(backtest_df)
+    backtest_df['total_portfolio'] = backtest_df['stock_portfolio'] + backtest_df['cash_portfolio']
+    backtest_df['day_change_rate'] = backtest_df['total_portfolio'].pct_change()
+    backtest_df['total_change_rate'] = backtest_df['total_portfolio']/initial_money - 1
+
     return backtest_df
 
 #  [코드 5.16] 해당 날짜에 가격이 없으면 투자 관련 데이터에서 해당 종목 없애는 함수 (Ch5. 백테스트.ipynb)
@@ -948,8 +979,17 @@ def show_price_chart(st_df, name=None):
     plt.legend(loc='upper right')
     # plt.grid()
     plt.show()
-    
 
+def show_general_chart(st_df, name_to_draw):
+    plt.figure(figsize=(40, 20))
+    plt.rcParams.update({'font.size': 22})
+    plt.plot(st_df.index, st_df[name_to_draw], linewidth=3.0)
+    plt.xlabel("duration")
+    plt.ylabel(name_to_draw)
+#     plt.legend(loc='upper right')
+    # plt.grid()
+    plt.show()
+    
 
 
 

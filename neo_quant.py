@@ -26,6 +26,19 @@ my_portfolio_code_list = ['A001230','A005490','A000720','A006360','A009540','A01
 
 ########################## Basic API ################################
 
+def iterable(obj):
+    try:
+        iterator = iter(obj)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
+def intersection(lst1, lst2): 
+    lst3 = [value for value in lst1 if value in lst2] 
+    return lst3 
+
 def get_company_name(company_code):    
     return _get_company_name(company_code, companies)
     
@@ -116,8 +129,8 @@ def get_kospi_list(company_df):
 def get_kosdaq_list(company_df):
     return company_df[company_df['구분']=='코스닥']
     
-def get_price_over_list(company_code_list, min_price = 0):
-    return _get_price_over_list(company_code_list, prices, min_price)    
+def get_price_over_list(company_code_list, min_price = 0, check_month=None):
+    return _get_price_over_list(company_code_list, prices, min_price, check_month)    
     
 ########################## Strategy API ################################
     
@@ -128,11 +141,68 @@ def show_business_trend(year_duration=1):
 def get_maximum_earning_rate(year_duration=1, min_price=0, min_profit=0, type='all'):
     return _get_maximum_earning_rate(prices, companies, year_duration, min_price, min_profit, type)
     
+def backtest_with_code_list(code_list, start_date, end_date, initial_money=100000000):
+#     if days == None:
+#         end_date = prices.iloc[-1].name
+#     else:
+#         end_date = pd.to_datetime(start_date) + datetime.timedelta(days=days)
+    return _backtest_with_code_list(code_list, prices, start_date, end_date, initial_money)       
     
     
-    
-    
-    
+def low_per_backtest(start_date='2016-6', end_date=None, stock_num=6, min_price=0, division='kospi', initial_money=100000000):
+
+    price_df = prices
+
+    if end_date == None:
+        end_date = price_df.iloc[-1].name
+        end_date = end_date.strftime('%Y-%m-%d')
+
+    start_year = int(start_date.split('-')[0])
+    end_year = int(end_date.split('-')[0])
+
+    start_month = start_date.split('-')[1]
+    date_month_ago = pd.to_datetime(start_date) - datetime.timedelta(days=30)
+    date_month_ago = date_month_ago.strftime('%Y-%m-%d')
+    end_month = date_month_ago.split('-')[1]
+
+    total_df = 0
+    total_money = initial_money
+    for temp in range(start_year, end_year):
+        this_term_start = str(temp) + '-' + start_month
+        if end_month == '12':
+            this_term_end = str(temp) + '-' + end_month
+        else:
+            this_term_end = str(temp+1) + '-' + end_month
+
+        strategy_date = get_strategy_date(this_term_start)
+        per = low_per(iv_df, strategy_date, None)
+
+        temp_index = price_df[this_term_start].iloc[0].dropna().index
+        final_index = intersection(per.index, temp_index)
+        per = per.loc[final_index]
+
+        per = add_price_info(per)
+        per = add_company_info(per)
+        if division == 'kospi':
+            per = get_kospi_list(per)
+        elif division == 'kosdaq':
+            per = get_kosdaq_list(per)
+        if min_price > 0:
+            temp_index = get_price_over_list(per.index, min_price, this_term_start)
+            per = per.loc[temp_index]
+
+        backtest = backtest_with_code_list(per.index[:stock_num], this_term_start, this_term_end, total_money)
+        total_money = backtest['total_portfolio'][-1]
+        if temp == start_year:
+            total_df = backtest
+        else:
+            total_df = pd.concat([total_df, backtest])
+
+    total_df ['day_change_rate'] = total_df ['total_portfolio'].pct_change()
+    total_df ['total_change_rate'] = total_df ['total_portfolio']/ total_df ['total_portfolio'][0] - 1
+
+    return total_df
+        
 
 
 
