@@ -321,7 +321,7 @@ def _get_maximum_earning_rate(price_df, company_df, year_duration=1, min_price=0
     
     price_diff_df = price_diff_df.sort_values(by='ratio', ascending=False)
     
-    price_diff_df = add_company_info(price_diff_df, company_df)
+    price_diff_df = _add_company_info(price_diff_df, company_df)
     
     if type == 'kospi':
         price_diff_df = get_kospi_list(price_diff_df)
@@ -348,8 +348,11 @@ def _show_company_info(company_code_list, company_df, price_df):
     firm_df['fr_info'] = firm_df['fr_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_FinanceRatio.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=104&stkGb=701&gicode={0}" target="_blank">fr</a>'.format(x))
     firm_df['iv_info'] = firm_df.index
     firm_df['iv_info'] = firm_df['iv_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Invest.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=105&stkGb=701&gicode={0}" target="_blank">iv</a>'.format(x))
+    firm_df['chart'] = firm_df.index
+    firm_df['chart'] = firm_df['chart'].apply(lambda x: x.replace('A',''))
+    firm_df['chart'] = firm_df['chart'].apply(lambda x: '<a href="https://finance.naver.com/item/fchart.nhn?code={0}" target="_blank">chart</a>'.format(x))
     return HTML(firm_df.to_html(escape=False))
-    
+
 def _show_company_info_by_name(firm_name, company_df):
     company_list = _get_company_code_list(firm_name, company_df)
     if len(company_list) == 0:
@@ -546,9 +549,9 @@ def make_invest_dataframe(firm_code):
 
 #  [코드 3.40] 가격을 가져와 데이터프레임 만드는 함수 (CH3. 데이터 수집하기 2.ipynb)
 
-def make_price_dataframe(code, timeframe, count):
-    if code.startswith('A'):
-        request_code = code.replace('A','')
+def make_price_dataframe(request_code, timeframe, count):
+    if request_code.startswith('A'):
+        request_code = request_code.replace('A','')
     url = 'https://fchart.stock.naver.com/sise.nhn?requestType=0'
     price_url = url + '&symbol=' + request_code + '&timeframe=' + timeframe + '&count=' + count
     price_data = requests.get(price_url)
@@ -563,7 +566,7 @@ def make_price_dataframe(code, timeframe, count):
         date_list.append(datas[0])
         price_list.append(datas[4])
 
-    price_df = pd.DataFrame({code:price_list}, index=date_list)
+    price_df = pd.DataFrame({request_code:price_list}, index=date_list)
     
     return price_df
 

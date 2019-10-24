@@ -178,7 +178,7 @@ def low_per_backtest(start_date='2016-6', end_date=None, stock_num=6, min_price=
             this_term_end = str(temp+1) + '-' + end_month
 
         strategy_date = get_strategy_date(this_term_start)
-        per = low_per(iv_df, strategy_date, None)
+        per = _low_per(iv_df, strategy_date, None)
 
         temp_index = price_df[this_term_start].iloc[0].dropna().index
         final_index = intersection(per.index, temp_index)
