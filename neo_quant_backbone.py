@@ -111,22 +111,17 @@ def filter_company(st_df, companies):
 
     return st_df.loc[new_company_list]
 
-def add_company_info(st_df, companies):
-    return pd.merge(st_df, companies, how='inner', left_index=True, right_index=True)
-
-# 데이터프레임에서 회사코드로 필터링한 후 회사 정보 추가하기
-# roa_filter_info = add_company_info(filter_company(roa, companies), companies)
-
-def get_kospi_list(company_df):
-    return company_df[company_df['구분']=='코스피']
-
-def get_kosdaq_list(company_df):
-    return company_df[company_df['구분']=='코스닥']
-
 def _get_price_over_list(company_code_list, price_df, min_price = 0):
     temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
     temp_df = temp_df[temp_df['price'] > min_price]
     return temp_df.index
+
+def _add_company_info(st_df, company_df):
+    return pd.merge(st_df, company_df, how='inner', left_index=True, right_index=True)
+
+def _add_price_info(st_df, price_df):
+    temp_df = pd.DataFrame({'price':price_df[st_df.index].iloc[-1]}) 
+    return pd.merge(st_df, temp_df, how='outer', left_index=True, right_index=True)
 
 # str 이나 list 를 전달한다.
 def _get_company_code_list(company_name_list, company_df):
@@ -309,8 +304,9 @@ def _show_earning_chart(code_list, price_df, year_duration=1, initial_money=1000
     st_backtest['총변화율'].plot()
     plt.show()
     
-def _show_company_info(company_code_list, company_df):
+def _show_company_info(company_code_list, company_df, price_df):
     firm_df = company_df.loc[company_code_list]
+    firm_df = _add_price_info(firm_df, price_df)
     firm_df['fs_info'] = firm_df.index
     firm_df['fs_info'] = firm_df['fs_info'].apply(lambda x: '<a href="https://comp.fnguide.com/SVO2/asp/SVD_Finance.asp?pGB=1&cID=&MenuYn=Y&ReportGB=D&NewMenuID=103&stkGb=701&gicode={0}" target="_blank">fs</a>'.format(x))
     firm_df['fr_info'] = firm_df.index

@@ -64,10 +64,22 @@ def show_earning_chart(code_list, year_duration=1, initial_money=100000000):
     _show_earning_chart(code_list, prices, year_duration, initial_money)
 
 def show_company_info(company_code_list):
-    return _show_company_info(company_code_list, companies)
+    return _show_company_info(company_code_list, companies, prices)
     
 def show_company_info_by_name(firm_name):
     return _show_company_info_by_name(firm_name, companies)
+    
+def add_company_info(st_df):
+    return _add_company_info(st_df, companies)
+
+def add_price_info(st_df):
+    return _add_price_info(st_df, prices)
+
+def get_kospi_list(company_df):
+    return company_df[company_df['구분']=='코스피']
+
+def get_kosdaq_list(company_df):
+    return company_df[company_df['구분']=='코스닥']
     
 def get_price_over_list(company_code_list, min_price = 0):
     return _get_price_over_list(company_code_list, prices, min_price)    
