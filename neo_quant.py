@@ -42,21 +42,56 @@ def get_company_code_list(company_name_list):
 def show_earning_rate(company_code_list, year_duration=1):
     return _show_earning_rate(company_code_list, companies, prices, year_duration)
 
-def show_chart_by_name(company_name, year_duration=1):
-    _show_chart_by_name(company_name, companies, prices, year_duration)
+def show_chart_by_name(company_name, days=365):
+    company_list = _get_company_code_list(company_name, companies)
+    if len(company_list) == 0:
+        print('no company with name' + company_name)
+        return
+    code = company_list[0]['code']
+    name = company_list[0]['name']
+    show_chart(code, days) 
 
-def show_chart(company_code, year_duration=1):
-    _show_chart(company_code, companies, prices, year_duration)
+# def show_chart(company_code, year_duration=1):
+#     _show_chart(company_code, companies, prices, year_duration)
+    
+def show_chart(company_code, days=365):
+    end_date = prices.iloc[-1].name
+    start_date = end_date - datetime.timedelta(days=days)
+    name = get_company_name(company_code)
+    _show_chart(company_code, prices, companies, start_date, end_date, name)
+    
+def show_start_duration_chart(company_code, start_date, days=None):
+    if days == None:
+        end_date = prices.iloc[-1].name
+    else:
+        end_date = pd.to_datetime(start_date) + datetime.timedelta(days=days)
+    name = get_company_name(company_code)
+    _show_chart(company_code, prices, companies, start_date, end_date, name)
 
+def show_period_chart(company_code, start_date, end_date=None):
+    if end_date == None:
+        end_date = prices.iloc[-1].name
+    name = get_company_name(company_code)
+    _show_chart(company_code, prices, companies, start_date, end_date, name)
+    
 def show_monthly_chart(company_code, year_duration=1):
     _show_monthly_chart(company_code, companies, prices, year_duration)
     
 def show_detail_chart_by_name(company_name, year_duration=1):
     _show_detail_chart_by_name(company_name, companies, prices, year_duration)
     
-def show_multi_chart(company_code_list, year_duration=1):
-    _show_multi_chart(company_code_list, prices, companies, year_duration)
-    
+# def show_multi_chart(company_code_list, days=365):
+#     end_date = prices.iloc[-1].name
+#     start_date = end_date - datetime.timedelta(days=days)
+#     _show_chart(company_code_list, prices, companies, start_date, end_date)
+
+# def show_multi_start_duration_chart(company_code_list, start_date, days=None):
+#     if days == None:
+#         end_date = prices.iloc[-1].name
+#     else:
+#         end_date = pd.to_datetime(start_date) + datetime.timedelta(days=days)
+#     _show_multi_chart(company_code_list, prices, companies, start_date, end_date)
+
 def show_earning_rate_by_name(firm_name, year_duration=1):
     return _show_earning_rate_by_name(firm_name, companies, prices, year_duration)
 

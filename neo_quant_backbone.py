@@ -27,7 +27,6 @@ def make_code2(x):
     x = str(x)
     return '0' * (6-len(x)) + x
 
-
 # def get_all_company_info():
 #     kospi = pd.read_excel('data/kospi.xls')
 #     kosdaq = pd.read_excel('data/kosdaq.xls')
@@ -140,26 +139,57 @@ def _get_company_code(name, company_df):
 def _get_company_name(company_code, company_df):
     return company_df.loc[company_code]['기업명']
 
-def _show_chart(company_code, company_df, price_df, year_duration=1, name=None):
-    end_date = price_df.iloc[-1].name
-    start_date = end_date - datetime.timedelta(days=year_duration * 365)
-    strategy_price = price_df[company_code][start_date:end_date]
-    strategy_df = pd.DataFrame({'price':strategy_price})
-    plt.figure(figsize=(10, 6))
-    if name == None:
-        name = company_code
-    strategy_df['price'].plot(label=name)
-    plt.legend()
-    plt.show() 
+# def _show_chart(company_code, company_df, price_df, year_duration=1, name=None):
+#     end_date = price_df.iloc[-1].name
+#     start_date = end_date - datetime.timedelta(days=year_duration * 365)
+#     strategy_price = price_df[company_code][start_date:end_date]
+#     strategy_df = pd.DataFrame({'price':strategy_price})
+#     plt.figure(figsize=(10, 6))
+#     if name == None:
+#         name = company_code
+#     strategy_df['price'].plot(label=name)
+#     plt.legend()
+#     plt.show() 
+
+def _iterable(obj):
+    try:
+        iterator = iter(obj)
+    except TypeError:
+        return False
+    else:
+        return True
+
+def _show_chart(company_code, price_df, company_df, start_date, end_date, name=None):
+    if isinstance(company_code, str):
+        strategy_price = price_df[company_code][start_date:end_date]
+        strategy_df = pd.DataFrame({'price':strategy_price})
+        plt.figure(figsize=(10, 6))
+        if name == None:
+            name = company_code
+        strategy_df['price'].plot(label=name)
+        plt.legend()
+        plt.show() 
+    else:
+        company_code_list = company_code
+        strategy_price = price_df[company_code_list][start_date:end_date]
+        num_row = int((len(company_code_list)-1)/2)+1
+        plt.figure(figsize=(10*4, num_row*5))
+        for i, code in enumerate(company_code_list):
+            ax = plt.subplot(num_row, 4, i+1)
+            name = _get_company_name(code, company_df)
+            ax.title.set_text(name)
+            ax.plot(strategy_price.index, strategy_price[code])
+        plt.show()
+
     
-def _show_chart_by_name(company_name, company_df, price_df, year_duration=1):
-    company_list = _get_company_code_list(company_name, company_df)
-    if len(company_list) == 0:
-        print('no company with name' + company_name)
-        return
-    code = company_list[0]['code']
-    name = company_list[0]['name']
-    _show_chart(code, company_df, price_df, year_duration, name) 
+# def _show_chart_by_name(company_name, company_df, price_df, year_duration=1):
+#     company_list = _get_company_code_list(company_name, company_df)
+#     if len(company_list) == 0:
+#         print('no company with name' + company_name)
+#         return
+#     code = company_list[0]['code']
+#     name = company_list[0]['name']
+#     _show_chart(code, company_df, price_df, year_duration, name) 
     
 def _show_monthly_chart(company_code, company_df, price_df, year_duration=1):
     end_date = price_df.iloc[-1].name
@@ -202,9 +232,9 @@ def _show_monthly_chart(company_code, company_df, price_df, year_duration=1):
     plt.show() 
 
     
-def _show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
-    end_date = price_df.iloc[-1].name
-    start_date = end_date - datetime.timedelta(days=year_duration * 365)
+def _show_multi_chart(company_code_list, price_df, company_df, start_date, end_date):
+#     end_date = price_df.iloc[-1].name
+#     start_date = end_date - datetime.timedelta(days=year_duration * 365)
     strategy_price = price_df[company_code_list][start_date:end_date]
     num_row = int((len(company_code_list)-1)/2)+1
     plt.figure(figsize=(10, num_row*5))
@@ -214,7 +244,6 @@ def _show_multi_chart(company_code_list, price_df, company_df, year_duration=1):
         ax.title.set_text(name)
         ax.plot(strategy_price.index, strategy_price[code])
     plt.show()
-       
 
 
 def _show_detail_chart(company_code, company_df, price_df, year_duration=1, name=None):
