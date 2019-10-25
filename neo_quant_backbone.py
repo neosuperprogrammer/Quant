@@ -584,14 +584,18 @@ def make_price_dataframe(request_code, timeframe, count):
     return price_df
 
 def _add_market_price_info(price_df):
-    kospi_df = make_price_dataframe('KOSPI', 'day', '6000')
-    kospi_df.index = pd.to_datetime(kospi_df.index)
     kosdaq_df = make_price_dataframe('KOSDAQ', 'day', '6000')
     kosdaq_df.index = pd.to_datetime(kosdaq_df.index)
-    market_df = pd.merge(kospi_df, kosdaq_df, left_index=True, right_index=True, how='outer')
-    market_df = market_df[price_df.iloc[0].name:price_df.iloc[-1].name]
-    total_df = pd.merge(market_df, prices, left_index=True, right_index=True, how='outer')
+    kosdaq_df = kosdaq_df[price_df.iloc[0].name:price_df.iloc[-1].name]
+    total_df = pd.merge(kosdaq_df, price_df, left_index=True, right_index=True, how='inner')
+
+    kospi_df = make_price_dataframe('KOSPI', 'day', '6000')
+    kospi_df.index = pd.to_datetime(kospi_df.index)
+    kospi_df = kospi_df[price_df.iloc[0].name:price_df.iloc[-1].name]
+    total_df = pd.merge(kospi_df, total_df, left_index=True, right_index=True, how='inner')
+    
     return total_df
+
 
 #  [코드 4.6] 재무 데이터 전처리하는 함수 (CH4. 전략 구현하기.ipynb)
 
