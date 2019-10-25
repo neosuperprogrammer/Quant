@@ -118,7 +118,7 @@ def filter_company(st_df, companies):
 #     temp_df = temp_df[temp_df['price'] > min_price]
 #     return temp_df.index
 
-def _get_price_over_list(company_code_list, price_df, min_price = 0, check_month=None):
+def _get_price_over_code_list(company_code_list, price_df, min_price = 0, check_month=None):
     if check_month == None:
         temp_df = pd.DataFrame({'price':price_df[company_code_list].iloc[-1]})
     else:
@@ -176,7 +176,7 @@ def _show_chart(company_code, price_df, company_df, start_date, end_date, show_m
         strategy_df['price'].plot(label=name)
         
         if show_market_price == True:
-            if isKospi(company_code):
+            if is_kospi(company_code):
                 market_name = 'KOSPI'
             else:
                 market_name = 'KOSDAQ'

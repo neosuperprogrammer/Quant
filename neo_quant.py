@@ -39,8 +39,13 @@ def intersection(lst1, lst2):
     lst3 = [value for value in lst1 if value in lst2] 
     return lst3 
 
-def isKospi(company_code):
-    return companies.loc[company_code]['구분'] == '코스피'
+def is_kospi(company_code):
+    if company_code in companies.index:
+        return companies.loc[company_code]['구분'] == '코스피'
+    elif company_code == 'KOSPI':
+        return True
+    else:
+        return False
 
 def get_company_name(company_code):    
     return _get_company_name(company_code, companies)
@@ -129,13 +134,18 @@ def get_kospi_list(company_df):
 def get_kosdaq_list(company_df):
     return company_df[company_df['구분']=='코스닥']
     
-def get_price_over_list(company_code_list, min_price = 0, check_month=None):
-    return _get_price_over_list(company_code_list, prices, min_price, check_month)    
-    
-########################## Strategy API ################################
-    
+def get_price_over_code_list(company_code_list, min_price = 0, check_month=None):
+    return _get_price_over_code_list(company_code_list, prices, min_price, check_month)    
+
+def get_price_over_list(company_df, min_price = 0, check_month=None):
+    return company_df[company_df['price'] > min_price]
+
 def low_per(index_date, num=None):
     return _low_per(iv_df, index_date, num)
+
+
+########################## Strategy API ################################
+    
     
 def show_business_trend(year_duration=1):
     _show_business_trend(companies, prices, year_duration)
@@ -191,7 +201,7 @@ def low_per_backtest(start_date='2016-6', end_date=None, stock_num=6, min_price=
         elif division == 'kosdaq':
             per = get_kosdaq_list(per)
         if min_price > 0:
-            temp_index = get_price_over_list(per.index, min_price, this_term_start)
+            temp_index = get_price_over_code_list(per.index, min_price, this_term_start)
             per = per.loc[temp_index]
 
         backtest = backtest_with_code_list(per.index[:stock_num], this_term_start, this_term_end, total_money)
@@ -207,7 +217,35 @@ def low_per_backtest(start_date='2016-6', end_date=None, stock_num=6, min_price=
     return total_df
         
 
+def get_company_list_beated_market_profit(price_df, start_date, end_date=None, market_type='kospi', min_profit=None, min_price=0):
+    if end_date == None:
+        end_date = price_df.iloc[-1].name
+    strategy_price = price_df[start_date:end_date]
+    strategy_price = strategy_price.fillna(method='bfill')
+    total_change_rate = strategy_price/strategy_price.iloc[0]-1
+    st_df = pd.DataFrame({'change_rate':total_change_rate.iloc[-1]})
+    st_df['구분'] = st_df.index.map(lambda x: '코스피' if is_kospi(x) else '코스닥')
+    if market_type == 'kospi':
+        st_df = get_kospi_list(st_df)
+        st_df = st_df[st_df['change_rate'] > st_df.loc['KOSPI']['change_rate']]
+    else:
+        st_df = get_kosdaq_list(st_df)
+        st_df = st_df[st_df['change_rate'] > st_df.loc['KOSDAQ']['change_rate']]
+        
+    st_df = st_df.drop('구분', axis=1)
+    st_df = add_company_info(st_df)
+    st_df = add_price_info(st_df)
+    
+    st_df = get_price_over_list(st_df, min_price)
 
+    if min_profit != None:
+        st_df = st_df[st_df['change_rate'] > min_profit]
+
+    st_df['rank'] = st_df['change_rate'].rank(ascending=False)
+    st_df = st_df.sort_values(by='rank')
+    
+
+    return st_df
 
 
 
