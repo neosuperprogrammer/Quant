@@ -165,14 +165,27 @@ def _get_company_name(company_code, company_df):
 #     plt.legend()
 #     plt.show() 
 
-def _show_chart(company_code, price_df, company_df, start_date, end_date, name=None):
+def _show_chart(company_code, price_df, company_df, start_date, end_date, show_market_price=False, name=None):
     if isinstance(company_code, str):
         strategy_price = price_df[company_code][start_date:end_date]
         strategy_df = pd.DataFrame({'price':strategy_price})
+        
         plt.figure(figsize=(10, 6))
         if name == None:
-            name = company_code
+            name = _get_company_name(company_code, company_df)
         strategy_df['price'].plot(label=name)
+        
+        if show_market_price == True:
+            if isKospi(company_code):
+                market_name = 'KOSPI'
+            else:
+                market_name = 'KOSDAQ'
+            market_price = price_df[market_name][start_date:end_date]
+            market_df = pd.DataFrame({'price':market_price})
+            ratio = strategy_df.iloc[0]/market_df.iloc[0]
+            market_df = market_df * ratio
+            market_df['price'].plot(label=market_name)
+        
         plt.legend()
         plt.show() 
     else:
@@ -569,6 +582,16 @@ def make_price_dataframe(request_code, timeframe, count):
     price_df = pd.DataFrame({request_code:price_list}, index=date_list)
     
     return price_df
+
+def _add_market_price_info(price_df):
+    kospi_df = make_price_dataframe('KOSPI', 'day', '6000')
+    kospi_df.index = pd.to_datetime(kospi_df.index)
+    kosdaq_df = make_price_dataframe('KOSDAQ', 'day', '6000')
+    kosdaq_df.index = pd.to_datetime(kosdaq_df.index)
+    market_df = pd.merge(kospi_df, kosdaq_df, left_index=True, right_index=True, how='outer')
+    market_df = market_df[price_df.iloc[0].name:price_df.iloc[-1].name]
+    total_df = pd.merge(market_df, prices, left_index=True, right_index=True, how='outer')
+    return total_df
 
 #  [코드 4.6] 재무 데이터 전처리하는 함수 (CH4. 전략 구현하기.ipynb)
 

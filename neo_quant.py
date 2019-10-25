@@ -39,6 +39,9 @@ def intersection(lst1, lst2):
     lst3 = [value for value in lst1 if value in lst2] 
     return lst3 
 
+def isKospi(company_code):
+    return companies.loc[company_code]['구분'] == '코스피'
+
 def get_company_name(company_code):    
     return _get_company_name(company_code, companies)
     
@@ -64,28 +67,25 @@ def show_chart_by_name(company_name, days=365):
     name = company_list[0]['name']
     show_chart(code, days) 
 
-# def show_chart(company_code, year_duration=1):
-#     _show_chart(company_code, companies, prices, year_duration)
-    
-def show_chart(company_code, days=365):
+def show_chart(company_code, days=365, show_market_price=False):
     end_date = prices.iloc[-1].name
     start_date = end_date - datetime.timedelta(days=days)
     name = get_company_name(company_code)
-    _show_chart(company_code, prices, companies, start_date, end_date, name)
+    _show_chart(company_code, prices, companies, start_date, end_date, show_market_price, name)
     
-def show_start_duration_chart(company_code, start_date, days=None):
+def show_start_duration_chart(company_code, start_date, days=None, show_market_price=False):
     if days == None:
         end_date = prices.iloc[-1].name
     else:
         end_date = pd.to_datetime(start_date) + datetime.timedelta(days=days)
     name = get_company_name(company_code)
-    _show_chart(company_code, prices, companies, start_date, end_date, name)
+    _show_chart(company_code, prices, companies, start_date, end_date, show_market_price, name)
 
-def show_period_chart(company_code, start_date, end_date=None):
+def show_start_end_chart(company_code, start_date, end_date=None, show_market_price=False):
     if end_date == None:
         end_date = prices.iloc[-1].name
     name = get_company_name(company_code)
-    _show_chart(company_code, prices, companies, start_date, end_date, name)
+    _show_chart(company_code, prices, companies, start_date, end_date, show_market_price, name)    
     
 def show_monthly_chart(company_code, year_duration=1):
     _show_monthly_chart(company_code, companies, prices, year_duration)
