@@ -562,7 +562,8 @@ def make_invest_dataframe(firm_code):
 
 #  [코드 3.40] 가격을 가져와 데이터프레임 만드는 함수 (CH3. 데이터 수집하기 2.ipynb)
 
-def make_price_dataframe(request_code, timeframe, count):
+def make_price_dataframe(company_code, timeframe, count):
+    request_code = company_code
     if request_code.startswith('A'):
         request_code = request_code.replace('A','')
     url = 'https://fchart.stock.naver.com/sise.nhn?requestType=0'
@@ -579,7 +580,7 @@ def make_price_dataframe(request_code, timeframe, count):
         date_list.append(datas[0])
         price_list.append(datas[4])
 
-    price_df = pd.DataFrame({request_code:price_list}, index=date_list)
+    price_df = pd.DataFrame({company_code:price_list}, index=date_list)
     
     return price_df
 
