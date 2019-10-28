@@ -450,6 +450,25 @@ def get_company_list_from_business_code(busi_code, company_df):
 
 
 
+def fetch_prices(compay_code_list, timeframe, count):
+    for num, code in enumerate(compay_code_list):
+        try:
+            print(num, code)
+            time.sleep(1)
+            try:
+                price_df = make_price_dataframe(code, timeframe, count)
+            except requests.exceptions.Timeout:
+                time.sleep(60)
+                price_df = make_price_dataframe(code, timeframe, count)
+            if num == 0 :
+                total_price = price_df
+            else:
+                total_price = pd.merge(total_price, price_df, how='outer', right_index=True, left_index=True)
+        except ValueError:
+            continue
+        except KeyError:
+            continue
+    return total_price
 
 
 
@@ -567,7 +586,7 @@ def make_price_dataframe(company_code, timeframe, count):
     if request_code.startswith('A'):
         request_code = request_code.replace('A','')
     url = 'https://fchart.stock.naver.com/sise.nhn?requestType=0'
-    price_url = url + '&symbol=' + request_code + '&timeframe=' + timeframe + '&count=' + count
+    price_url = url + '&symbol=' + request_code + '&timeframe=' + timeframe + '&count=' + str(count)
     price_data = requests.get(price_url)
     price_data_bs = bs4.BeautifulSoup(price_data.text, 'lxml')
     item_list = price_data_bs.find_all('item')
