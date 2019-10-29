@@ -203,8 +203,19 @@ def _show_chart(company_code, price_df, company_df, start_date, end_date, show_m
         for i, code in enumerate(company_code_list):
             ax = plt.subplot(num_row, 4, i+1)
             name = _get_company_name(code, company_df)
-            ax.title.set_text(name)
-            ax.plot(strategy_price.index, strategy_price[code])
+            ax.title.set_text(name + ' (' + str(code) + ')')
+            ax.plot(strategy_price.index, strategy_price[code], color='black')
+
+            if show_market_price == True:
+                if is_kospi(code):
+                    market_name = 'KOSPI'
+                else:
+                    market_name = 'KOSDAQ'
+                market_price = price_df[market_name][start_date:end_date]
+                market_df = pd.DataFrame({'price':market_price})
+                ratio = strategy_price[code].iloc[0]/market_df.iloc[0]
+                market_df = market_df * ratio
+                ax.plot(market_df.index, market_df['price'], color='red')
         plt.show()
 
     
