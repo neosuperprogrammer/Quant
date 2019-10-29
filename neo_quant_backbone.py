@@ -792,6 +792,8 @@ def backtest_beta(price_df, strategy_df, start_date, end_date, initial_money):
 #     return backtest_df
 
 def _backtest_with_code_list(code_list, price_df, start_date, end_date, initial_money):
+    if end_date == None:
+        end_date = end_date = prices.iloc[-1].name
     strategy_price = price_df[code_list][start_date:end_date]
     strategy_price = strategy_price.fillna(method='bfill')
     strategy_price = strategy_price.dropna(axis=1)

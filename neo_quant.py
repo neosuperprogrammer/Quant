@@ -154,7 +154,7 @@ def show_business_trend(year_duration=1):
 def get_maximum_earning_rate(year_duration=1, min_price=0, min_profit=0, type='all'):
     return _get_maximum_earning_rate(prices, companies, year_duration, min_price, min_profit, type)
     
-def backtest_with_code_list(code_list, start_date, end_date, initial_money=100000000):
+def backtest_with_code_list(code_list, start_date, end_date=None, initial_money=100000000):
 #     if days == None:
 #         end_date = prices.iloc[-1].name
 #     else:
