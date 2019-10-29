@@ -251,7 +251,48 @@ def get_company_list_beated_market_profit(price_df, start_date, end_date=None, m
     return st_df
 
 
+def show_industry_list_beated_market_profit(price_df, start_date, end_date=None, market_type='kospi'):
+    if end_date == None:
+        end_date = price_df.iloc[-1].name
 
+    industry = dict(list(companies.groupby(['업종', '업종코드'])))
+
+    industry_list = []
+    for key,value in industry.items():
+        if market_type == 'kospi':
+            value = get_kospi_list(value)
+        else:
+            value = get_kosdaq_list(value)
+        industry_list.append({'name':key[0], 'code':key[1], 'list':list(value.index)})
+        
+    if market_type == 'kospi':  
+        strategy_price = price_df[['KOSPI']][start_date:end_date]
+    else:  
+        strategy_price = price_df[['KOSDAQ']][start_date:end_date]
+    strategy_price = strategy_price.fillna(method='bfill')
+    strategy_price['total_change_rate'] = strategy_price/strategy_price.iloc[0]-1
+    
+    num_row = int((len(industry_list)-1)/2)+1
+
+    plt.figure(figsize=(10*4, num_row*5))
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+    index = 0
+    for i, industory in enumerate(industry_list):
+        name = industory['name']
+        code = industory['code']
+        firm_list = industory['list']
+        firm_list = get_firm_list_existing_in_price_df(firm_list)
+        if len(firm_list) == 0:
+            continue
+        backtest = backtest_with_code_list(get_firm_list_existing_in_price_df(firm_list), start_date, end_date)
+        if (backtest['total_change_rate'][-1] > strategy_price['total_change_rate'][-1]):
+            ax = plt.subplot(num_row, 4, index+1)
+            index = index+1
+            title = name + ' : ' + str(code) + ' (' + str(len(firm_list)) +')'
+            ax.title.set_text(title)
+            ax.plot(backtest.index, backtest['total_change_rate'], color='black')
+            ax.plot(strategy_price.index, strategy_price['total_change_rate'], color='red')
+    plt.show()
 
 
 
