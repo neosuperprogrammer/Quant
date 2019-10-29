@@ -60,6 +60,9 @@ def get_company_code_list(company_name_list):
 
 ########################## API ################################
 
+def get_firm_list_existing_in_price_df(firm_list):
+    return _get_firm_list_existing_in_price_df(firm_list, prices)
+
 def show_earning_rate(company_code_list, year_duration=1):
     return _show_earning_rate(company_code_list, companies, prices, year_duration)
 

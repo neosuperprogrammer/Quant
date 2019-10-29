@@ -55,6 +55,13 @@ def remove_a_from_company_code(company_df):
         code_list.append(code)
     return company_df.set_index(pd.Series(code_list))
 
+def _get_firm_list_existing_in_price_df(firm_list, price_df):
+    new_firm_list = []
+    for code in firm_list:
+        if code in price_df.columns:
+            new_firm_list.append(code)
+    return new_firm_list
+
 def get_company_data(min_price=0):
     kospi = pd.read_excel('data/kospi.xls')
     kosdaq = pd.read_excel('data/kosdaq.xls')
@@ -1032,13 +1039,15 @@ def show_price_chart(st_df, name=None):
     # plt.grid()
     plt.show()
 
-def show_general_chart(st_df, name_to_draw):
+def show_general_chart(st_df, name_to_draw, label=None):
     plt.figure(figsize=(40, 20))
     plt.rcParams.update({'font.size': 22})
-    plt.plot(st_df.index, st_df[name_to_draw], linewidth=3.0)
+    if label == None:
+        label = name_to_draw
+    plt.plot(st_df.index, st_df[name_to_draw], linewidth=3.0, label=label)
     plt.xlabel("duration")
     plt.ylabel(name_to_draw)
-#     plt.legend(loc='upper right')
+    plt.legend(loc='upper right')
     # plt.grid()
     plt.show()
     
