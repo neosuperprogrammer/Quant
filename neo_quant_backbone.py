@@ -11,8 +11,8 @@ from dateutil import parser
 from matplotlib import font_manager, rc
 from IPython.display import HTML
 pd.set_option('display.max_colwidth', -1)
-# rc('font', family='AppleGothic')
-# plt.rcParams['axes.unicode_minus'] = False
+rc('font', family='AppleGothic')
+plt.rcParams['axes.unicode_minus'] = False
 # pd.options.display.max_rows = 60
 # %matplotlib inline
 
@@ -160,18 +160,6 @@ def _get_company_code(name, company_df):
 def _get_company_name(company_code, company_df):
     return company_df.loc[company_code]['기업명']
 
-# def _show_chart(company_code, company_df, price_df, year_duration=1, name=None):
-#     end_date = price_df.iloc[-1].name
-#     start_date = end_date - datetime.timedelta(days=year_duration * 365)
-#     strategy_price = price_df[company_code][start_date:end_date]
-#     strategy_df = pd.DataFrame({'price':strategy_price})
-#     plt.figure(figsize=(10, 6))
-#     if name == None:
-#         name = company_code
-#     strategy_df['price'].plot(label=name)
-#     plt.legend()
-#     plt.show() 
-
 def _show_chart(company_code, price_df, company_df, start_date, end_date, show_market_price=False, name=None):
     if isinstance(company_code, str):
         strategy_price = price_df[company_code][start_date:end_date]
@@ -196,10 +184,12 @@ def _show_chart(company_code, price_df, company_df, start_date, end_date, show_m
         plt.legend()
         plt.show() 
     else:
+        plt.rc('font', size=20)
         company_code_list = company_code
         strategy_price = price_df[company_code_list][start_date:end_date]
         num_row = int((len(company_code_list)-1)/2)+1
-        plt.figure(figsize=(10*4, num_row*5))
+        plt.figure(figsize=(10*4, (num_row)*5))
+        plt.subplots_adjust(wspace=0.2, hspace=0.4)
         for i, code in enumerate(company_code_list):
             ax = plt.subplot(num_row, 4, i+1)
             name = _get_company_name(code, company_df)
