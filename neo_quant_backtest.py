@@ -1,13 +1,14 @@
-# %load neo_quant.py
+# %load neo_quant_backtest.py
+# %load neo_quant_backtest.py
 import pandas as pd
 import numpy as np
 # import requests
 # import bs4
 # import time
 # import datetime
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # from dateutil import parser
-# from matplotlib import font_manager, rc
+from matplotlib import font_manager, rc
 # from IPython.display import HTML
 # pd.set_option('display.max_colwidth', -1)
 
@@ -98,9 +99,16 @@ def make_initial_portfolio(firm_list, start_date, price_df, initial_money):
 
     pf_df = pd.DataFrame(pf_stock_num, index=[strategy_price.iloc[0].name])
     pf_df['cash'] = cash_amount
-    return pf_df
+    
+    
+    cache_df = pf_df.T
+    cache_df['buy_date'] = strategy_price.iloc[0].name
+    cache_df = cache_df.drop(strategy_price.iloc[0].name, axis=1)
+    cache_df = cache_df.drop('cash')
+    
+    return pf_df, cache_df
 
-def make_update_portfolio(firm_list, total_pf_df, date, price_df):
+def make_update_portfolio(firm_list, total_pf_df, cache_df, date, price_df):
     strategy_price = price_df[firm_list][date:]
     pf_stock_num = {}
     stock_amount = 0
@@ -116,6 +124,8 @@ def make_update_portfolio(firm_list, total_pf_df, date, price_df):
         else:
             total_pf_df[code] = 0
             total_pf_df.at[date, code] = stock_count
+        ############## cache update ######################
+        cache_df.loc[code] = date
         
         stock_amount = stock_amount + stock_count * strategy_price[code][0]
     total_cash = total_cash - stock_amount
@@ -126,7 +136,7 @@ def make_update_portfolio(firm_list, total_pf_df, date, price_df):
     return total_pf_df
 
 
-def update_portfolio(total_pf_df, today, price_df, firm_count=20, min_profit=0.5, min_days=365*2):
+def update_portfolio(pf_func, total_pf_df, cache_df, today, price_df, firm_count=20, max_profit=0.5, max_holding_days=365*2):
     temp_df = pd.DataFrame(total_pf_df.iloc[-1]).T
     temp_df.index = [today]
     total_pf_df = pd.concat([total_pf_df, temp_df])
@@ -144,15 +154,18 @@ def update_portfolio(total_pf_df, today, price_df, firm_count=20, min_profit=0.5
         if buy_count == 0:
             continue
             
-        last_buy_date = get_last_buy_date(total_pf_df, code)
+#         last_buy_date = get_last_buy_date(total_pf_df, code)
+        last_buy_date = cache_df.at[code, 'buy_date'] # use cache
+#         print(last_buy_date)
         if last_buy_date != 0:
             buy_price = price_df[code].loc[last_buy_date]
             today_price = price_df[code].loc[today]
             profit = today_price / buy_price - 1
-            pass_enough_years_after_buy = pd.to_datetime(today) - last_buy_date > datetime.timedelta(days=min_days)
-            enough_profit = profit >= min_profit
+            pass_enough_years_after_buy = pd.to_datetime(today) - last_buy_date > datetime.timedelta(days=max_holding_days)
+            enough_profit = profit >= max_profit
             if enough_profit:
-                print('>>>>>> enough profit (' + code + ') - ' + str(profit) + ' : ' + str(today))
+                name = get_company_name(code)
+                print('>>>>>> enough profit (' + name + ' : ' + code + ') - ' + str(profit) + ' : ' + str(today))
             if pass_enough_years_after_buy:
                 print('>>>>>> enough periods (' + code + ') - ' + str(pd.to_datetime(today) - last_buy_date) + str(today))
             if pass_enough_years_after_buy or enough_profit:
@@ -161,6 +174,8 @@ def update_portfolio(total_pf_df, today, price_df, firm_count=20, min_profit=0.5
                 total_cash = total_cash + sell_profit
                 sell_count = sell_count + 1
                 sell_code_list.append(code)
+                ############## cache update ################
+                cache_df.drop(code)
                 
     total_pf_df.at[today, 'cash'] = total_cash  
 #     print(sell_count)
@@ -168,7 +183,8 @@ def update_portfolio(total_pf_df, today, price_df, firm_count=20, min_profit=0.5
         print('>>>>>> sell list (' + str(len(sell_code_list)) + ') : ' +  str(today))
         print(sell_code_list)
         print('\n')
-        firm_list = get_low_per_firm_list(today.strftime('%Y-%m-%d'), price_df, None)
+#         firm_list = get_low_per_firm_list(today.strftime('%Y-%m-%d'), price_df, None)
+        firm_list = pf_func(today.strftime('%Y-%m-%d'))
 #         firm_list = get_low_per_firm_list(start_date, price_df, None)
 #         print('>>>>>> low per')
 #         print(firm_list[:20])
@@ -178,28 +194,49 @@ def update_portfolio(total_pf_df, today, price_df, firm_count=20, min_profit=0.5
         buy_firm_count = get_buy_firm_count(total_pf_df)
         buy_count = firm_count - buy_firm_count
 #         printㅠ('>>>> buy count : ' + str(buy_count))
-        total_pf_df = make_update_portfolio(firm_list[:buy_count], total_pf_df, today, price_df)
+        total_pf_df = make_update_portfolio(firm_list[:buy_count], total_pf_df, cache_df, today, price_df)
     return total_pf_df
 
 
-def get_low_per_backtest_df(start_date, price_df, firm_count=20, initial_money=100000000, min_profit=0.5, min_days=365*2):
-    firm_list = get_low_per_firm_list(start_date, price_df, firm_count)
+# def get_low_per_backtest_df(start_date, price_df, firm_count=20, initial_money=100000000, min_profit=0.5, min_days=365*2):
+#     firm_list = get_low_per_firm_list(start_date, price_df, firm_count)
+#     total_date_index = price_df[start_date:].index
+
+#     for num, date in enumerate(total_date_index):
+#         if num == 0:
+#             total_pf_df, cashe_df = make_initial_portfolio(firm_list, date, price_df, initial_money)
+#         else:
+#             total_pf_df = update_portfolio(total_pf_df, date, price_df, firm_count, min_profit, min_days)
+#             total_pf_df = total_pf_df.fillna(0)
+#             aList = list(total_pf_df.columns)
+#             aList.remove('cash')
+#             aList.append('cash')
+#             total_pf_df = total_pf_df[aList]
+#     #         if date == pd.to_datetime('2017-1-5'):
+#     #             break
+#     return total_pf_df
+
+def get_portfolio_backtest_df(pf_func, start_date, price_df, firm_count=20, initial_money=100000000, min_profit=0.5, min_days=365*2):
     total_date_index = price_df[start_date:].index
+    first_date = total_date_index[0]
+    
+    firm_list = pf_func(first_date)
 
-    for num, date in enumerate(total_date_index):
-        if num == 0:
-            total_pf_df = make_initial_portfolio(firm_list, date, price_df, initial_money)
-        else:
-            total_pf_df = update_portfolio(total_pf_df, date, price_df, firm_count, min_profit, min_days)
-            total_pf_df = total_pf_df.fillna(0)
-            aList = list(total_pf_df.columns)
-            aList.remove('cash')
-            aList.append('cash')
-            total_pf_df = total_pf_df[aList]
-    #         if date == pd.to_datetime('2017-1-5'):
-    #             break
+        
+    total_pf_df, cache_df = make_initial_portfolio(firm_list[:firm_count], first_date, price_df, initial_money)
+
+    for num, date in enumerate(total_date_index[1:]):
+    #     if num == 0:
+    #         total_pf_df, cashe_df = make_initial_portfolio(firm_list, date, price_df, initial_money)
+    #     else:
+        total_pf_df = update_portfolio(pf_func, total_pf_df, cache_df, date, price_df, firm_count, max_profit, max_holding_days)
+        total_pf_df = total_pf_df.fillna(0)
+        aList = list(total_pf_df.columns)
+        aList.remove('cash')
+        aList.append('cash')
+        total_pf_df = total_pf_df[aList]
+
     return total_pf_df
-
 
 
 
