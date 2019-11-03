@@ -1,4 +1,5 @@
 # %load neo_quant_backtest.py
+# %load neo_quant_backtest.py
 import pandas as pd
 import numpy as np
 # import requests
@@ -172,10 +173,10 @@ def update_portfolio(pf_func, total_pf_df, cache_df, today, price_df, firm_count
             enough_profit = profit >= max_profit
             if enough_profit:
                 name = get_company_name(code)
-                print('>>>>>> enough profit (' + name + ' : ' + code + ') - ' + str(profit) + ' : ' + str(today))
+                print('>>>>>> enough profit (' + name + ' : ' + code + ') - (' + str(today_price) + ' : ' + str(round(profit, 2)) + ') : ' + str(today))
             if pass_enough_years_after_buy:
                 name = get_company_name(code)
-                print('>>>>>> enough periods (' + name + ' : ' + code + ') - ' + str(pd.to_datetime(today) - last_buy_date) + str(today))
+                print('>>>>>> enough periods (' + name + ' : ' + code + ') - (' + str(today_price) + ' : ' + str(round(profit, 2)) + ') : ' + str(pd.to_datetime(today) - last_buy_date) + str(today))
             if pass_enough_years_after_buy or enough_profit:
                 sell_profit = buy_count * today_price
                 total_pf_df.at[today, code] = 0
