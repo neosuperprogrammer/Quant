@@ -1,3 +1,4 @@
+# %load neo_quant_backbone.py
 # !open .
 # %load neo_quant_backbone.py
 import pandas as pd
@@ -20,7 +21,10 @@ plt.rcParams['axes.unicode_minus'] = False
 
 def make_code(x):
     x = str(x)
-    return 'A' + '0' * (6-len(x)) + x
+    code = '0' * (6-len(x)) + x
+    if not code.startswith('A'):
+        code = 'A' + code
+    return code
 
 
 def make_code2(x):
@@ -96,6 +100,11 @@ def get_fr_data():
 def get_invest_data():
     invest_path = r'data/invest_data.xlsx'
     return get_finance_data(invest_path)
+
+def get_company_df_from_total_capital(company_df, pct):
+    company_df = add_price_info(company_df)
+    company_df['시가총액'] = company_df['상장주식수(주)'] * company_df['price']
+    return company_df.sort_values(by='시가총액', ascending=False)[:int(len(companies) * pct)]
 
 def load_all_data():
     companies = get_company_data()
