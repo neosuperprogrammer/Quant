@@ -1,4 +1,4 @@
-# %load neo_quant.py
+# %load py_neo_quant_basic.py
 import pandas as pd
 import numpy as np
 # import requests
@@ -212,7 +212,7 @@ def low_per_backtest(start_date='2016-6', end_date=None, stock_num=6, min_price=
         if temp == start_year:
             total_df = backtest
         else:
-            total_df = pd.concat([total_df, backtest])
+            total_df = pd.concat([total_df, backtest], sort=False)
 
     total_df ['day_change_rate'] = total_df ['total_portfolio'].pct_change()
     total_df ['total_change_rate'] = total_df ['total_portfolio']/ total_df ['total_portfolio'][0] - 1

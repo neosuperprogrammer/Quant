@@ -1,6 +1,5 @@
-# %load neo_quant_backbone.py
+# %load py_neo_quant_backbone.py
 # !open .
-# %load neo_quant_backbone.py
 import pandas as pd
 import numpy as np
 import requests
@@ -71,7 +70,7 @@ def get_company_data(min_price=0):
     kosdaq = pd.read_excel('data/kosdaq.xls')
     kospi['구분'] = '코스피'
     kosdaq['구분'] = '코스닥'
-    companies = pd.concat([kospi, kosdaq])
+    companies = pd.concat([kospi, kosdaq], sort=False)
     companies = companies[['종목코드','기업명','구분','업종코드','업종','액면가(원)','상장주식수(주)', '자본금(원)']]
     companies['상장주식수(주)'] = companies['상장주식수(주)'].str.replace(',','').astype(int)
     companies['자본금(원)'] = companies['자본금(원)'].str.replace(',','').astype(int)
@@ -245,7 +244,7 @@ def _show_monthly_chart(company_code, company_df, price_df, year_duration=1):
                     month_df = temp_df
                     first = False
                 else:
-                    month_df = pd.concat([month_df, temp_df])
+                    month_df = pd.concat([month_df, temp_df], sort=False)
 
     strategy_df = pd.DataFrame({'price':month_df[company_code]})
     ma3 = strategy_df['price'].rolling(window=3).mean()
@@ -501,7 +500,7 @@ def update_origin_price_df(origin_price_df, code, count):
     price_df.index = pd.to_datetime(price_df.index)
     price_df[code] = price_df[code].astype(float)
     price_df_origin = pd.DataFrame({code:origin_prices[code]}) 
-    new_price_df = pd.concat([price_df_origin, price_df])
+    new_price_df = pd.concat([price_df_origin, price_df], sort=False)
     new_price_df = new_price_df.loc[~new_price_df.index.duplicated(keep='last')]
     origin_prices = origin_prices.drop(code, axis=1)
     origin_prices = pd.merge(origin_prices, new_price_df, left_index=True, right_index=True, how='outer')
@@ -544,7 +543,7 @@ def make_fs_dataframe(firm_code):
     temp_df3 = temp_df3.set_index(temp_df3.columns[0])
     temp_df3 = temp_df3.loc[['영업활동으로인한현금흐름']]
 
-    fs_df = pd.concat([temp_df, temp_df2, temp_df3])
+    fs_df = pd.concat([temp_df, temp_df2, temp_df3], sort=False)
     
     return fs_df
 
@@ -893,7 +892,7 @@ def backtest_re(strategy, start_date, end_date, initial_money, price_df, fr_df, 
         if temp == start_year:
             total_df = backtest
         else:
-            total_df = pd.concat([total_df[:-1], backtest])
+            total_df = pd.concat([total_df[:-1], backtest], sort=False)
 
     total_df ['일변화율'] = total_df ['종합포트폴리오'].pct_change()
     total_df ['총변화율'] = total_df ['종합포트폴리오']/ total_df ['종합포트폴리오'][0] - 1
@@ -1012,7 +1011,7 @@ def get_monthly_price_df(company_code, price_df, year_duration=1):
                     month_df = temp_df
                     first = False
                 else:
-                    month_df = pd.concat([month_df, temp_df])
+                    month_df = pd.concat([month_df, temp_df], sort=False)
     return month_df
 
 def get_yearly_price_df(company_code, price_df, year_duration=1):

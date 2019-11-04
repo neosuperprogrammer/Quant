@@ -1,5 +1,4 @@
-# %load neo_quant_backtest.py
-# %load neo_quant_backtest.py
+# %load py_neo_quant_backtest.py
 import pandas as pd
 import numpy as np
 # import requests
@@ -78,7 +77,7 @@ def get_backtest_result_from_pf(total_pf_df, price_df):
             backtest_df = temp_df
             initial_money = pf_profit
         else:
-            backtest_df = pd.concat([backtest_df, temp_df])
+            backtest_df = pd.concat([backtest_df, temp_df], sort=False)
     backtest_df['day_change_rate'] = backtest_df['total_portfolio'].pct_change()
     backtest_df['total_change_rate'] = backtest_df['total_portfolio']/initial_money - 1
     return backtest_df
@@ -147,7 +146,7 @@ def make_update_portfolio(firm_list, total_pf_df, cache_df, date, price_df):
 def update_portfolio(pf_func, total_pf_df, cache_df, today, price_df, firm_count=20, max_profit=0.5, max_holding_days=365*2):
     temp_df = pd.DataFrame(total_pf_df.iloc[-1]).T
     temp_df.index = [today]
-    total_pf_df = pd.concat([total_pf_df, temp_df])
+    total_pf_df = pd.concat([total_pf_df, temp_df], sort=False)
     
     total_cash = total_pf_df['cash'].iloc[-1]
 #     prev_date = total_pf_df.index[-1]
