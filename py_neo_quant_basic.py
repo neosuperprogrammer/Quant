@@ -128,8 +128,8 @@ def show_company_info_by_name(firm_name):
 def add_company_info(st_df):
     return _add_company_info(st_df, companies)
 
-def add_price_info(st_df):
-    return _add_price_info(st_df, prices)
+def add_price_info(st_df, start_date = None):
+    return _add_price_info(st_df, prices, start_date)
 
 def get_kospi_list(company_df):
     return company_df[company_df['구분']=='코스피']
@@ -146,6 +146,21 @@ def get_price_over_list(company_df, min_price = 0, check_month=None):
 def low_per(index_date, num=None):
     return _low_per(iv_df, index_date, num)
 
+def low_pbr(index_date, num = None):
+    return _low_pbr(iv_df, index_date, num)
+
+def high_gpa(index_date, num = None):
+    return _high_gpa(fs_df, index_date, num)
+
+def qp_formula(index_date, num = None):
+    pbr = low_pbr(index_date, num)
+    gpa = high_gpa(index_date, num)
+    pbr['PBR_RANK'] = pbr['PBR'].rank()
+    gpa['GPA_RANK'] = gpa['GPA'].rank(ascending=False)
+    qp = pd.merge(pbr, gpa, how='outer', left_index=True, right_index=True)
+    qp['MAGIC_RANK'] = (qp['PBR_RANK'] + qp['GPA_RANK']).rank()
+    qp = qp.sort_values(by='MAGIC_RANK')
+    return qp[:num]
 
 ########################## Strategy API ################################
     

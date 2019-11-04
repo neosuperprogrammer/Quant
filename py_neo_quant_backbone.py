@@ -100,8 +100,8 @@ def get_invest_data():
     invest_path = r'data/invest_data.xlsx'
     return get_finance_data(invest_path)
 
-def get_company_df_from_total_capital(company_df, pct):
-    company_df = add_price_info(company_df)
+def get_company_df_from_total_capital(company_df, pct, start_date = None):
+    company_df = add_price_info(company_df, start_date)
     company_df['시가총액'] = company_df['상장주식수(주)'] * company_df['price']
     return company_df.sort_values(by='시가총액', ascending=False)[:int(len(companies) * pct)]
 
@@ -147,9 +147,12 @@ def _get_price_over_code_list(company_code_list, price_df, min_price = 0, check_
 def _add_company_info(st_df, company_df):
     return pd.merge(st_df, company_df, how='inner', left_index=True, right_index=True)
 
-def _add_price_info(st_df, price_df):
-    temp_df = pd.DataFrame({'price':price_df[st_df.index].iloc[-1]}) 
-    return pd.merge(st_df, temp_df, how='outer', left_index=True, right_index=True)
+def _add_price_info(st_df, price_df, start_date = None):
+    if start_date == None:
+        temp_df = pd.DataFrame({'price':price_df[st_df.index].iloc[-1]}) 
+    else:
+        temp_df = pd.DataFrame({'price':price_df[st_df.index].loc[start_date:].iloc[0]}) 
+    return pd.merge(st_df, temp_df, how='left', left_index=True, right_index=True)
 
 # str 이나 list 를 전달한다.
 def _get_company_code_list(company_name_list, company_df):
@@ -533,7 +536,7 @@ def make_fs_dataframe(firm_code):
     temp_df = fs_tables[0]
     temp_df = temp_df.set_index(temp_df.columns[0])
     temp_df = temp_df[temp_df.columns[:4]]
-    temp_df = temp_df.loc[['매출액', '영업이익', '당기순이익']]
+    temp_df = temp_df.loc[['매출액', '매출원가', '영업이익', '당기순이익', '매출총이익']]
 
     temp_df2 = fs_tables[2]
     temp_df2 = temp_df2.set_index(temp_df2.columns[0])
@@ -675,6 +678,16 @@ def high_roa(fr_df, index_date, num):
     sorted_roa = fr_df.sort_values(by=(index_date, 'ROA'), ascending=False)
     return sorted_roa[index_date][:num]
 
+def _low_pbr(invest_df, index_date, num):
+    invest_df[(index_date, 'PBR')] = pd.to_numeric(invest_df[(index_date, 'PBR')])
+    pbr_sorted = invest_df.sort_values(by=(index_date, 'PBR'))
+    return pbr_sorted[index_date][:num]
+
+def _high_gpa(fs_df, index_date, num):
+    gpa = fs_df[index_date]
+    gpa['GPA'] = gpa['매출총이익']/gpa['자산']
+    gpa_sorted = gpa.sort_values(by='GPA', ascending=False)
+    return gpa_sorted[:num]
 
 #  [코드 4.22] 마법공식 함수로 만들기 (CH4. 전략 구현하기.ipynb)
 
