@@ -247,6 +247,31 @@ def get_portfolio_backtest_df(pf_func, start_date, price_df, firm_count=20, init
     return total_pf_df
 
 
+def get_price_data_for_backtest():
+    price_path = r'data/price_data_2005.xlsx'
+    price_df = pd.read_excel(price_path)
+    price_df = price_df.set_index(price_df.columns[0])
+    return price_df
+
+def load_all_data_for_backtest():
+    prices = get_price_data_for_backtest()
+    companies = get_company_data()
+    total_fs_df = make_total_fs_df()
+    total_fr_df = make_total_fr_df()
+    total_iv_df = make_total_iv_df()
+    common_index = intersection(total_fs_df.index, total_iv_df.index)
+    common_index = intersection(common_index, companies.index)
+    companies = companies.loc[common_index]
+    fs_df = total_fs_df.loc[common_index]
+    fr_df = total_fr_df.loc[common_index]
+    iv_df = total_iv_df.loc[common_index]
+    price_index = []
+    price_index.append('KOSPI')
+    price_index.append('KOSDAQ')
+    for code in common_index:
+        price_index.append(code)
+    prices = prices[price_index]
+    return companies, fs_df, fr_df, iv_df, prices 
 
 
 
