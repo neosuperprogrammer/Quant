@@ -689,6 +689,16 @@ def _high_gpa(fs_df, index_date, num):
     gpa_sorted = gpa.sort_values(by='GPA', ascending=False)
     return gpa_sorted[:num]
 
+def low_value(st_df, value_name, index_date, num = None):
+    st_df[(index_date, value_name)] = pd.to_numeric(st_df[(index_date, value_name)])
+    st_df_sorted = st_df.sort_values(by=(index_date, value_name))
+    return st_df_sorted[index_date][:num]
+
+def high_value(st_df, value_name, index_date, num = None):
+    st_df[(index_date, value_name)] = pd.to_numeric(st_df[(index_date, value_name)])
+    st_df_sorted = st_df.sort_values(by=(index_date, value_name), ascending=False)
+    return st_df_sorted[index_date][:num]
+
 #  [코드 4.22] 마법공식 함수로 만들기 (CH4. 전략 구현하기.ipynb)
 
 def magic_formula(fr_df, invest_df, index_date, num):

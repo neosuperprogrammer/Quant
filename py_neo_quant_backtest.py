@@ -243,6 +243,7 @@ def get_portfolio_backtest_df(pf_func, start_date, price_df, firm_count=20, init
         aList.remove('cash')
         aList.append('cash')
         total_pf_df = total_pf_df[aList]
+        time.sleep(0.01)
 
     return total_pf_df
 
