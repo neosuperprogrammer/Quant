@@ -128,9 +128,14 @@ def show_company_info_by_name(firm_name):
 def add_company_info(st_df):
     return _add_company_info(st_df, companies)
 
+# def add_price_info(st_df, start_date = None):
+#     return _add_price_info(st_df, prices, start_date)
 def add_price_info(st_df, start_date = None):
-    return _add_price_info(st_df, prices, start_date)
-
+    if 'price' in st_df.columns:
+        return st_df
+    else:
+        return _add_price_info(st_df, prices, start_date)
+    
 def get_kospi_list(company_df):
     return company_df[company_df['구분']=='코스피']
 

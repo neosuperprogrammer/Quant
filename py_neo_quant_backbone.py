@@ -103,7 +103,7 @@ def get_invest_data():
 def get_company_df_from_total_capital(company_df, pct, start_date = None):
     company_df = add_price_info(company_df, start_date)
     company_df['시가총액'] = company_df['상장주식수(주)'] * company_df['price']
-    return company_df.sort_values(by='시가총액', ascending=False)[:int(len(companies) * pct)]
+    return company_df.sort_values(by='시가총액', ascending=False)[:int(len(company_df) * pct)]
 
 def load_all_data():
     companies = get_company_data()

@@ -274,8 +274,26 @@ def load_all_data_for_backtest():
     prices = prices[price_index]
     return companies, fs_df, fr_df, iv_df, prices 
 
-
-
+def load_recent_data_for_backtest():
+    companies = get_company_data()
+    fs_df = get_fs_data()
+    fr_df = get_fr_data()
+    iv_df = get_invest_data()
+    prices = get_price_data()
+    common_index = intersection(fs_df.index, fr_df.index)
+    common_index = intersection(common_index, iv_df.index)
+    common_index = intersection(common_index, companies.index)
+    companies = companies.loc[common_index]
+    fs_df = fs_df.loc[common_index]
+    fr_df = fr_df.loc[common_index]
+    iv_df = iv_df.loc[common_index]
+    price_index = []
+    price_index.append('KOSPI')
+    price_index.append('KOSDAQ')
+    for code in common_index:
+        price_index.append(code)
+    prices = prices[price_index]
+    return companies, fs_df, fr_df, iv_df, prices 
 
 
 
