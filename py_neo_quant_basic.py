@@ -158,12 +158,13 @@ def high_gpa(index_date, num = None):
     return _high_gpa(fs_df, index_date, num)
 
 def qp_formula(index_date, num = None):
-    pbr = low_pbr(index_date, num)
-    gpa = high_gpa(index_date, num)
+    pbr = low_pbr(index_date, None)
+    gpa = high_gpa(index_date, None)
     pbr['PBR_RANK'] = pbr['PBR'].rank()
     gpa['GPA_RANK'] = gpa['GPA'].rank(ascending=False)
     qp = pd.merge(pbr, gpa, how='outer', left_index=True, right_index=True)
-    qp['MAGIC_RANK'] = (qp['PBR_RANK'] + qp['GPA_RANK']).rank()
+    qp['MAGIC'] = (qp['PBR_RANK'] + qp['GPA_RANK'])
+    qp['MAGIC_RANK'] = qp['MAGIC'].rank()
     qp = qp.sort_values(by='MAGIC_RANK')
     return qp[:num]
 

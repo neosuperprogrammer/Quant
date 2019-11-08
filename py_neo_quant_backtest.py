@@ -254,32 +254,7 @@ def get_price_data_for_backtest():
     price_df = price_df.set_index(price_df.columns[0])
     return price_df
 
-def load_all_data_for_backtest():
-    prices = get_price_data_for_backtest()
-    companies = get_company_data()
-    total_fs_df = make_total_fs_df()
-    total_fr_df = make_total_fr_df()
-    total_iv_df = make_total_iv_df()
-    common_index = intersection(total_fs_df.index, total_iv_df.index)
-    common_index = intersection(common_index, companies.index)
-    companies = companies.loc[common_index]
-    fs_df = total_fs_df.loc[common_index]
-    fr_df = total_fr_df.loc[common_index]
-    iv_df = total_iv_df.loc[common_index]
-    price_index = []
-    price_index.append('KOSPI')
-    price_index.append('KOSDAQ')
-    for code in common_index:
-        price_index.append(code)
-    prices = prices[price_index]
-    return companies, fs_df, fr_df, iv_df, prices 
-
-def load_recent_data_for_backtest():
-    companies = get_company_data()
-    fs_df = get_fs_data()
-    fr_df = get_fr_data()
-    iv_df = get_invest_data()
-    prices = get_price_data()
+def get_normalize_data(companies, fs_df, fr_df, iv_df, prices):
     common_index = intersection(fs_df.index, fr_df.index)
     common_index = intersection(common_index, iv_df.index)
     common_index = intersection(common_index, companies.index)
@@ -293,7 +268,94 @@ def load_recent_data_for_backtest():
     for code in common_index:
         price_index.append(code)
     prices = prices[price_index]
+    
     return companies, fs_df, fr_df, iv_df, prices 
+
+def load_all_data_for_backtest():
+    fs_df = make_total_fs_df()
+    fr_df = make_total_fr_df()
+    iv_df = make_total_iv_df()
+    prices = get_price_data_for_backtest()
+    companies = get_company_data()
+    
+    return get_normalize_data(companies, fs_df, fr_df, iv_df, prices)
+
+def load_recent_data_for_backtest():
+    fs_df = get_fs_data()
+    fr_df = get_fr_data()
+    iv_df = get_invest_data()
+    prices = get_price_data()
+    companies = get_company_data()
+    
+    return get_normalize_data(companies, fs_df, fr_df, iv_df, prices)
+
+def get_low_per_kospi_firm_list(start_date):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    per = low_per(strategy_date)
+    new_firm_list = get_code_list_has_price(per.index, price_df, start_date)
+    per = per.loc[new_firm_list]
+    per = add_price_info(per)
+    per = add_company_info(per)
+    per = get_kospi_list(per)
+
+    temp_df = pd.DataFrame({'price':price_df.loc[start_date][per.index]})
+    temp_index = temp_df[temp_df['price'] > 5000].index
+    per = per.loc[temp_index]
+
+    return per.index
+
+def get_low_per_firm_list(start_date, price_df, num):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    firm_list = low_per(strategy_date).index
+    return get_code_list_has_price(firm_list, price_df, start_date)[:num]
+
+def get_low_per_portfolio(start_date):
+    firm_list = get_low_per_firm_list(start_date, price_df, None)
+    return firm_list
+
+def get_low_pbr_portfolio(start_date):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    firm_list = low_pbr(strategy_date).index
+    return get_code_list_has_price(firm_list, price_df, start_date)
+
+def get_high_roa_firm_list(start_date, price_df, num):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    firm_list = high_roa(fr_df, strategy_date, None).index
+    return get_code_list_has_price(firm_list, price_df, start_date)[:num]
+
+def get_high_roa_portfolio(start_date):
+    firm_list = get_high_roa_firm_list(start_date, price_df, None)
+    return firm_list
+
+def get_qp_portfolio(start_date):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    qp = qp_formula(strategy_date)
+    qp = add_company_info(qp)
+    qp = qp.loc[qp['당기순이익'] > 0]
+#     qp = qp.loc[qp['기업명'].apply(lambda x: False if '홀딩스' in x else True)]
+    qp_list = get_code_list_has_price(qp.index, price_df, start_date)
+    return qp_list
+
+
+def get_high_gpa_portfolio(start_date):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    firm_list = high_gpa(strategy_date).index
+    return get_code_list_has_price(firm_list, price_df, start_date)
+
+def get_low_ev_ebit_portfolio(start_date):
+    start_date = str(start_date)
+    strategy_date = get_strategy_date(start_date)
+    firm_list = low_value(ebit_df, 'EV_EBIT', strategy_date).index
+    return get_code_list_has_price(firm_list, price_df, start_date)
+
+def get_my_portfolio(start_date):
+    return my_portfolio_code_list
 
 
 
