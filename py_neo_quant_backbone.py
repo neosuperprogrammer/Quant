@@ -509,9 +509,9 @@ def update_origin_price_df(origin_price_df, code, count):
     origin_prices = pd.merge(origin_prices, new_price_df, left_index=True, right_index=True, how='outer')
     return origin_prices
     
-def update_prices(company_df, origin_price_df, count):
+def update_prices(company_code_list, origin_price_df, count):
     origin_prices = origin_price_df
-    for num, code in enumerate(company_df.index):
+    for num, code in enumerate(company_code_list):
         try:
             print(num, code)
             time.sleep(1)
