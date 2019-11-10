@@ -56,7 +56,8 @@ def get_last_buy_date(total_pf_df, firm_code):
 
 def get_hold_firm_list(total_pf_df):
     hold_firm_list = list(total_pf_df.columns[total_pf_df.iloc[-1] > 0])
-    hold_firm_list.remove('cash')
+    if 'cash' in hold_firm_list:
+        hold_firm_list.remove('cash')
     return hold_firm_list
 
 def get_pf_profit(date, total_pf_df, price_df):

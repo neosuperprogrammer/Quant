@@ -1,5 +1,6 @@
 # %load py_neo_quant_backbone.py
 # !open .
+import os
 import pandas as pd
 import numpy as np
 import requests
@@ -17,6 +18,11 @@ plt.rcParams['axes.unicode_minus'] = False
 # %matplotlib inline
 
 
+def file_exists(file_path):
+    return os.path.exists(file_path)
+
+def remove_file(file_path):
+    os.remove(file_path)
 
 def make_code(x):
     x = str(x)
