@@ -169,7 +169,7 @@ def make_update_portfolio(firm_list, total_pf_df, cache_df, date, price_df):
     print('\n')
     return total_pf_df
 
-def update_portfolio(pf_func, total_pf_df, cache_df, today, price_df, firm_count, max_profit, max_holding_days, maximum_rebuy_interval_days):
+def update_portfolio(pf_func, total_pf_df, cache_df, profit_df, not_profit_df, today, price_df, firm_count, max_profit, max_holding_days, maximum_rebuy_interval_days):
     temp_df = pd.DataFrame(total_pf_df.iloc[-1]).T
     temp_df.index = [today]
     total_pf_df = pd.concat([total_pf_df, temp_df], sort=False)
@@ -199,9 +199,13 @@ def update_portfolio(pf_func, total_pf_df, cache_df, today, price_df, firm_count
             if enough_profit:
                 name = get_company_name(code)
                 print('>>>>>> enough profit (' + name + ' : ' + code + ') - (' + str(today_price) + ' : ' + str(round(profit, 2)) + ') : ' + str(today))
+                temp_df = pd.DataFrame({'name':name, 'buy_date':last_buy_date, 'sell_date':today}, index=[code])
+                profit_df = pd.concat([profit_df, temp_df])
             if pass_enough_years_after_buy:
                 name = get_company_name(code)
                 print('>>>>>> enough periods (' + name + ' : ' + code + ') - (' + str(today_price) + ' : ' + str(round(profit, 2)) + ') : ' + str(pd.to_datetime(today) - last_buy_date) + str(today))
+                temp_df = pd.DataFrame({'name':name, 'buy_date':last_buy_date, 'sell_date':today}, index=[code])
+                not_profit_df = pd.concat([not_profit_df, temp_df])                
             if pass_enough_years_after_buy or enough_profit:
                 sell_profit = buy_count * today_price
                 total_pf_df.at[today, code] = 0
@@ -235,7 +239,7 @@ def update_portfolio(pf_func, total_pf_df, cache_df, today, price_df, firm_count
         buy_count = firm_count - hold_firm_count
 #         printㅠ('>>>> buy count : ' + str(buy_count))
         total_pf_df = make_update_portfolio(firm_list[:buy_count], total_pf_df, cache_df, today, price_df)
-    return total_pf_df
+    return total_pf_df, cache_df, profit_df, not_profit_df
 
 def get_portfolio_backtest_df(pf_func, start_date, price_df, firm_count=20, initial_money=100000000, max_profit=0.5, max_holding_days=365, maximum_rebuy_interval_days=30):
     total_date_index = price_df[start_date:].index
@@ -245,12 +249,13 @@ def get_portfolio_backtest_df(pf_func, start_date, price_df, firm_count=20, init
 
         
     total_pf_df, cache_df = make_initial_portfolio(firm_list[:firm_count], first_date, price_df, initial_money)
-
+    profit_df = pd.DataFrame()
+    not_profit_df = pd.DataFrame()
     for num, date in enumerate(total_date_index[1:]):
     #     if num == 0:
     #         total_pf_df, cashe_df = make_initial_portfolio(firm_list, date, price_df, initial_money)
     #     else:
-        total_pf_df = update_portfolio(pf_func, total_pf_df, cache_df, date, price_df, firm_count, max_profit, max_holding_days, maximum_rebuy_interval_days)
+        total_pf_df, cache_df, profit_df, not_profit_df = update_portfolio(pf_func, total_pf_df, cache_df, profit_df, not_profit_df, date, price_df, firm_count, max_profit, max_holding_days, maximum_rebuy_interval_days)
         total_pf_df = total_pf_df.fillna(0)
         aList = list(total_pf_df.columns)
         aList.remove('cash')
@@ -260,7 +265,8 @@ def get_portfolio_backtest_df(pf_func, start_date, price_df, firm_count=20, init
 #         if date >= pd.to_datetime('2009-06-27'):
 #             break
 
-    return total_pf_df, cache_df
+    return total_pf_df, cache_df, profit_df, not_profit_df
+
 
 def get_price_data_for_backtest():
     price_path = r'data/price_data_2005.xlsx'
@@ -371,7 +377,37 @@ def get_low_ev_ebit_portfolio(start_date):
 def get_my_portfolio(start_date):
     return my_portfolio_code_list
 
+def show_buy_sell_date_chart(firm_code, buy_date, sell_date, price_df):
+    start_date = pd.to_datetime(buy_date) - datetime.timedelta(days=365)
+    end_date = pd.to_datetime(sell_date) + datetime.timedelta(days=365)
+    name = get_company_name(firm_code)
+    strategy_price = price_df[[firm_code]][start_date:end_date]
+    buy_price = strategy_price.loc[buy_date, firm_code]
+    sell_price = strategy_price.loc[sell_date, firm_code]
+    plt.rc('font', size=10)
+    plt.figure(figsize=(10, 6))
+    ax = plt.subplot(1,1,1)
+    ax.plot(strategy_price.index, strategy_price[firm_code], label=name)
+    ax.annotate('buy(' + str(buy_price) + ')', xy=(buy_date, strategy_price.loc[buy_date, company_code]+75),
+        xytext=(buy_date, strategy_price.loc[buy_date, company_code] + 225), 
+                 arrowprops=dict(facecolor='black', headwidth=4, width=2,
+                                        headlength=4),
+                        horizontalalignment='left', verticalalignment='bottom')
+    ax.annotate('sell(' + str(sell_price) + ')', xy=(sell_date, strategy_price.loc[sell_date, company_code]+75),
+        xytext=(sell_date, strategy_price.loc[sell_date, company_code] + 225), 
+                 arrowprops=dict(facecolor='black', headwidth=4, width=2,
+                                        headlength=4),
+                        horizontalalignment='left', verticalalignment='bottom')
 
+    ax.set_xlim([start_date, end_date]) 
+    ax.set_ylim([strategy_price.min().iloc[0]*0.8, strategy_price.max().iloc[0]*1.2])
+
+    ax.set_title(name)
+    plt.xlabel("duration")
+    plt.ylabel("profit")
+#     plt.legend(loc='upper right')
+    # plt.grid()
+    plt.show()
 
 
 
