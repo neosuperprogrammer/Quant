@@ -355,8 +355,11 @@ def get_qp_portfolio(start_date):
     start_date = str(start_date)
     strategy_date = get_strategy_date(start_date)
     qp = qp_formula(strategy_date)
-    qp = add_company_info(qp)
+#     qp = add_company_info(qp)
+    qp = add_price_info(qp, start_date)
+#   qp = qp.loc[qp['당기순이익'] > 0]
     qp = qp.loc[qp['당기순이익'] > 0]
+#     qp = qp.loc[qp['price'] > 1000]
 #     qp = qp.loc[qp['기업명'].apply(lambda x: False if '홀딩스' in x else True)]
     qp_list = get_code_list_has_price(qp.index, price_df, start_date)
     return qp_list
