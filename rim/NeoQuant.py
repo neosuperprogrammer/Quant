@@ -187,6 +187,8 @@ def get_more_adequate_price(asset, roe, expected_ratio, stock_count, persist_fac
 def show_price_chart(company_code, company_name, price_df):
     plt.figure(figsize=(20, 12))
     plt.plot(price_df.index, price_df[company_code], color='darkblue',linewidth=1.0)
+    if 'price_very_low' in price_df.columns:
+        plt.plot(price_df.index, price_df['price_very_low'], color='grey',linewidth=3.0)
     plt.plot(price_df.index, price_df['price_low'], color='blue',linewidth=3.0)
     plt.plot(price_df.index, price_df['price_middle'], color='green',linewidth=3.0)
     plt.plot(price_df.index, price_df['price_high'], color='red',linewidth=3.0)
