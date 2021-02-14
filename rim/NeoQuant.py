@@ -299,3 +299,126 @@ def show_more_adequate_price_chart(company_name, companies, expected_ratio):
     price_df['price_high'] = [price_high] * len(price_df)
     
     show_price_chart(company_code, company_name, price_df)
+    
+    
+def get_total_stock_count(snapshot_tables):
+    stock_count = 0
+
+    info = snapshot_tables[0]
+    info = info.set_index(info.columns[0])
+    stock_count_info = info.loc['발행주식수(보통주/ 우선주)'][1]
+    stock_counts = stock_count_info.split('/')
+    for count in stock_counts:
+#         print(count)
+        stock_count = stock_count + int(count.replace(',',''))
+
+    return stock_count
+
+def get_self_stock_count(snapshot_tables):
+    self_stock_count = 0
+    info = snapshot_tables[4]
+    info = info.set_index(info.columns[0])
+    try:
+        count = info.loc[['자기주식\xa0(자사주+자사주신탁)']]['보통주'][0] 
+    except KeyError:
+        count = 0
+#     print(count)
+    if not math.isnan(count):
+        self_stock_count = int(count)
+    return self_stock_count
+
+# stock_count = get_total_stock_count(snapshot_tables) - get_self_stock_count(snapshot_tables)
+# print('stock count : ' + str(stock_count))
+
+def make_basic_df(company_code, snapshot_tables):
+    average_stock_count = get_total_stock_count(snapshot_tables)
+    self_stock_count = get_self_stock_count(snapshot_tables)
+
+    basic_df = pd.DataFrame({'총주식수': average_stock_count, '자사주': self_stock_count}, index = [company_code])
+    basic_df['주식수'] = basic_df['총주식수'] - basic_df['자사주']
+
+    info = snapshot_tables[0]
+    info = info.set_index(info.columns[0])
+
+    price = int(info.loc['종가/ 전일대비'].iloc[0].split('/')[0].replace(',', ''))
+    foreigner = float(info.loc['수익률(1M/ 3M/ 6M/ 1Y)'].iloc[2])
+    total_asset = int(info.loc['시가총액(보통주,억원)'].iloc[0]) * 100000000
+    basic_df['price'] = price
+    basic_df['외국인'] = foreigner
+    basic_df['시가총액'] = total_asset
+    return basic_df
+
+def make_fr_df(company_code, snapshot_tables):
+    data_df = snapshot_tables[10]
+    data_df.index = data_df[data_df.columns[0]]
+    data_df.index.name = ''
+    data_df.drop(data_df.columns[0], axis = 1, inplace = True)
+    
+#     data_df = data_df.set_index(data_df.columns[0])
+    data_df = data_df['Annual']
+
+    for num, name in enumerate(data_df.columns):
+        temp_df = pd.DataFrame({company_code: data_df[name]})
+        temp_df = temp_df.loc[['영업이익', '부채비율', '유보율', '지배주주지분', 'ROE', 'PER', 'PBR', '배당수익률']]
+        temp_df = temp_df.T
+        temp_df.columns = [[name] * len(temp_df.columns), temp_df.columns]
+        if num == 0:
+            total_df = temp_df
+        else:
+            total_df = pd.merge(total_df, temp_df, how='outer', left_index=True, right_index=True)    
+    return total_df
+
+
+def request_fnguide_snapshot(company_code):
+    if not company_code.startswith('A'):
+        company_code = 'A' + company_code
+    
+    snapshot_url = 'http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&cID=&MenuYn=Y&ReportGB=&NewMenuID=11&stkGb=701&gicode=' + company_code
+    snapshot_page = requests.get(snapshot_url)
+    snapshot_tables = pd.read_html(snapshot_page.text)
+    return snapshot_tables
+
+def get_ex_profits(asset, expected_ratio, roe, persist_factor, iteration = 10):
+    next_asset = asset
+    ex_profits = []
+    ex_profit_ratio = roe - expected_ratio
+    next_roe = roe
+    for _ in range(iteration):
+        ex_profit_ratio = ex_profit_ratio * persist_factor
+        next_roe = expected_ratio + ex_profit_ratio
+        profit = next_asset * (next_roe / 100)
+        ex_profit = next_asset * ex_profit_ratio / 100
+        ex_profits.append(ex_profit)
+        next_asset = next_asset + profit
+    return ex_profits
+def get_npv_profit(ex_profits, expected_ratio):
+    npv_value = 0
+    for num, ex_profit in enumerate(ex_profits):
+        ex_profit = ex_profit *  1 / (1 + expected_ratio / 100) ** (num + 1)
+#         print(ex_profit)
+        npv_value = npv_value + ex_profit
+
+    return npv_value
+
+def get_sum_of_profit(asset, expected_ratio, roe, persist_factor, iteration = 10):
+    ex_profits = get_ex_profits(asset, expected_ratio, roe, persist_factor, iteration)
+    sum_of_profit = get_npv_profit(ex_profits, expected_ratio)
+    return sum_of_profit
+
+def get_more_adequate_price(asset, roe, expected_ratio, stock_count, persist_factor = 1, iteration = 10):
+    accumulate_profit = get_sum_of_profit(asset, expected_ratio, roe, persist_factor, iteration)
+#     print(accumulate_profit)
+    adequate_stock_price = asset + accumulate_profit
+#     print(adequate_stock_price)
+    price = (asset + accumulate_profit) / stock_count
+    price = int(round(price))
+    return price
+
+def get_company_name(code, company_df):
+    name = company_df.loc[code]['company']
+    if len(name) > 0:
+        return name
+    else:
+        return ''    
+
+    
