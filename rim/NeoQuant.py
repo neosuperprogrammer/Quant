@@ -365,11 +365,11 @@ def make_fr_df(company_code, snapshot_tables):
 
     for num, name in enumerate(data_df.columns):
         temp_df = pd.DataFrame({company_code: data_df[name]})
-        temp_df = temp_df.loc[['영업이익', '자산총계', '부채총계', '자본총계', '부채비율', '유보율', '지배주주지분', 'ROE', 'PER', 'PBR', '배당수익률']]
+        temp_df = temp_df.loc[['영업이익', '자산총계', '부채총계', '자본총계', '부채비율', '유보율', '지배주주지분', 'ROE', 'ROA', 'PER', 'PBR', '배당수익률']]
         temp_df = temp_df.T
-        roa = float(temp_df['영업이익']) / float(temp_df['자산총계'])
-        roa = round(roa, 2)
-        temp_df['ROA'] = roa
+        rim_roa = float(temp_df['영업이익']) / float(temp_df['자산총계'])
+        rim_roa = round(rim_roa, 2)
+        temp_df['RIM_ROA'] = rim_roa
         temp_df.columns = [[name] * len(temp_df.columns), temp_df.columns]
         if num == 0:
             total_df = temp_df
