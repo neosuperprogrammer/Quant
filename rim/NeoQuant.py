@@ -334,22 +334,24 @@ def get_self_stock_count(snapshot_tables):
 # stock_count = get_total_stock_count(snapshot_tables) - get_self_stock_count(snapshot_tables)
 # print('stock count : ' + str(stock_count))
 
-def make_basic_df(company_code, snapshot_tables):
-    average_stock_count = get_total_stock_count(snapshot_tables)
-    self_stock_count = get_self_stock_count(snapshot_tables)
-
-    basic_df = pd.DataFrame({'총주식수': average_stock_count, '자사주': self_stock_count}, index = [company_code])
-    basic_df['주식수'] = basic_df['총주식수'] - basic_df['자사주']
-
+def make_basic_df(company_code, company_name, snapshot_tables):
     info = snapshot_tables[0]
     info = info.set_index(info.columns[0])
 
     price = int(info.loc['종가/ 전일대비'].iloc[0].split('/')[0].replace(',', ''))
     foreigner = float(info.loc['수익률(1M/ 3M/ 6M/ 1Y)'].iloc[2])
-    total_asset = int(info.loc['시가총액(보통주,억원)'].iloc[0]) * 100000000
-    basic_df['price'] = price
+    market_value = int(info.loc['시가총액(보통주,억원)'].iloc[0]) * 100000000
+
+    average_stock_count = get_total_stock_count(snapshot_tables)
+    self_stock_count = get_self_stock_count(snapshot_tables)
+
+    basic_df = pd.DataFrame({'name': company_name, 'price': price, '총주식수': average_stock_count, '자사주': self_stock_count}, index = [company_code])
+    basic_df['주식수'] = basic_df['총주식수'] - basic_df['자사주']
+
+
+#     basic_df['price'] = price
     basic_df['외국인'] = foreigner
-    basic_df['시가총액'] = total_asset
+    basic_df['시가총액'] = market_value
     return basic_df
 
 def make_fr_df(company_code, snapshot_tables):
@@ -365,6 +367,9 @@ def make_fr_df(company_code, snapshot_tables):
         temp_df = pd.DataFrame({company_code: data_df[name]})
         temp_df = temp_df.loc[['영업이익', '자산총계', '부채총계', '자본총계', '부채비율', '유보율', '지배주주지분', 'ROE', 'PER', 'PBR', '배당수익률']]
         temp_df = temp_df.T
+        roa = float(temp_df['영업이익']) / float(temp_df['자산총계'])
+        roa = round(roa, 2)
+        temp_df['ROA'] = roa
         temp_df.columns = [[name] * len(temp_df.columns), temp_df.columns]
         if num == 0:
             total_df = temp_df
