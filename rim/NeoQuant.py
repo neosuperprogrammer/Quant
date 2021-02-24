@@ -363,7 +363,7 @@ def make_fr_df(company_code, snapshot_tables):
 
     for num, name in enumerate(data_df.columns):
         temp_df = pd.DataFrame({company_code: data_df[name]})
-        temp_df = temp_df.loc[['영업이익', '부채비율', '유보율', '지배주주지분', 'ROE', 'PER', 'PBR', '배당수익률']]
+        temp_df = temp_df.loc[['영업이익', '자산총계', '부채총계', '자본총계', '부채비율', '유보율', '지배주주지분', 'ROE', 'PER', 'PBR', '배당수익률']]
         temp_df = temp_df.T
         temp_df.columns = [[name] * len(temp_df.columns), temp_df.columns]
         if num == 0:
@@ -425,4 +425,18 @@ def get_company_name(code, company_df):
     else:
         return ''    
 
+def get_base_profit_ratio():
+    spread_url = 'https://www.kisrating.co.kr/ratingsStatistics/statics_spread.do'
+    spread_page = requests.get(spread_url)
+    spread_tables = pd.read_html(spread_page.text)
+    spread = spread_tables[0]
+    expected_ratio = spread.set_index(spread.columns[0]).loc['BBB-']['5년']
+    return expected_ratio  
+
+def get_company_code_list(company_name_list, companies):
+    company_code_list = []
+    for name in company_name_list:
+        company_code = get_company_code(name, companies)
+        company_code_list.append(company_code)
+    return company_code_list
     
