@@ -284,6 +284,7 @@ def show_more_adequate_price_chart(company_name, companies, expected_ratio):
     price_high = get_more_adequate_price(asset, roe, expected_ratio, stock_count, 1)
     price_middel = get_more_adequate_price(asset, roe, expected_ratio, stock_count, 0.9)
     price_low = get_more_adequate_price(asset, roe, expected_ratio, stock_count, 0.8)
+    price_very_low = get_more_adequate_price(asset, roe, expected_ratio, stock_count, 0.5)
 
     print('buy : below ' + str(price_low))
     print('sell 1/3 : ' + str(price_middel))
@@ -296,6 +297,7 @@ def show_more_adequate_price_chart(company_name, companies, expected_ratio):
     discrepancy_rate = current_price / price_low 
     print('discrepancy rate : ' + str(discrepancy_rate))
 
+    price_df['price_very_low'] = [price_very_low] * len(price_df)
     price_df['price_low'] = [price_low] * len(price_df)
     price_df['price_middle'] = [price_middel] * len(price_df)
     price_df['price_high'] = [price_high] * len(price_df)
