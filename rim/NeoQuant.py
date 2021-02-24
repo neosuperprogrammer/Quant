@@ -337,10 +337,12 @@ def get_self_stock_count(snapshot_tables):
 def make_basic_df(company_code, company_name, snapshot_tables):
     info = snapshot_tables[0]
     info = info.set_index(info.columns[0])
-
+    info = info.fillna(0)
     price = int(info.loc['종가/ 전일대비'].iloc[0].split('/')[0].replace(',', ''))
     foreigner = float(info.loc['수익률(1M/ 3M/ 6M/ 1Y)'].iloc[2])
     market_value = int(info.loc['시가총액(보통주,억원)'].iloc[0]) * 100000000
+    if market_value == 0:
+        market_value = int(info.loc['시가총액(상장예정포함,억원)'].iloc[0]) * 100000000
 
     average_stock_count = get_total_stock_count(snapshot_tables)
     self_stock_count = get_self_stock_count(snapshot_tables)
@@ -356,6 +358,8 @@ def make_basic_df(company_code, company_name, snapshot_tables):
 
 def make_fr_df(company_code, snapshot_tables):
     data_df = snapshot_tables[10]
+    if len(data_df) < 20:
+        data_df = snapshot_tables[11]
     data_df.index = data_df[data_df.columns[0]]
     data_df.index.name = ''
     data_df.drop(data_df.columns[0], axis = 1, inplace = True)
@@ -365,9 +369,9 @@ def make_fr_df(company_code, snapshot_tables):
 
     for num, name in enumerate(data_df.columns):
         temp_df = pd.DataFrame({company_code: data_df[name]})
-        temp_df = temp_df.loc[['영업이익', '자산총계', '부채총계', '자본총계', '부채비율', '유보율', '지배주주지분', 'ROE', 'ROA', 'PER', 'PBR', '배당수익률']]
+        temp_df = temp_df.loc[['영업이익', '지배주주순이익', '자산총계', '부채총계', '자본총계', '지배주주지분', '부채비율', '유보율', 'ROE', 'ROA', 'PER', 'PBR', '배당수익률']]
         temp_df = temp_df.T
-        rim_roa = float(temp_df['영업이익']) / float(temp_df['자산총계'])
+        rim_roa = float(temp_df['영업이익']) / float(temp_df['자산총계']) * 100.0
         rim_roa = round(rim_roa, 2)
         temp_df['RIM_ROA'] = rim_roa
         temp_df.columns = [[name] * len(temp_df.columns), temp_df.columns]
