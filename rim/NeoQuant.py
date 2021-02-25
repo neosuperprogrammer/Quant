@@ -358,9 +358,20 @@ def make_basic_df(company_code, company_name, snapshot_tables):
     return basic_df
 
 def make_fr_df(company_code, snapshot_tables):
-    data_df = snapshot_tables[10]
-    if len(data_df) < 20:
-        data_df = snapshot_tables[11]
+    fr_df_index = -1
+    for num, snapshot in enumerate(snapshot_tables):
+        if 'Annual' in snapshot.columns:
+            if len(snapshot['Annual'].columns) > 4:
+#                 print('bingo ' + str(num))
+                fr_df_index = num
+                break
+
+    if fr_df_index == -1:
+        raise ValueError('>>>>> no fr dataframe with ' + str(company_code))
+        
+    data_df = snapshot_tables[fr_df_index]
+#     if len(data_df) < 20:
+#         data_df = snapshot_tables[11]
     data_df.index = data_df[data_df.columns[0]]
     data_df.index.name = ''
     data_df.drop(data_df.columns[0], axis = 1, inplace = True)
@@ -369,6 +380,8 @@ def make_fr_df(company_code, snapshot_tables):
     data_df = data_df['Annual']
 
     for num, name in enumerate(data_df.columns):
+        if name.endswith(('(E)', '(P)')):
+            continue
         temp_df = pd.DataFrame({company_code: data_df[name]})
         temp_df = temp_df.loc[['영업이익', '지배주주순이익', '자산총계', '부채총계', '자본총계', '지배주주지분', '부채비율', '유보율', 'ROE', 'ROA', 'PER', 'PBR', '배당수익률']]
         temp_df = temp_df.T
