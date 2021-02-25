@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import requests
 import bs4
 import math
@@ -448,4 +449,14 @@ def get_company_code_list(company_name_list, companies):
         company_code = get_company_code(name, companies)
         company_code_list.append(company_code)
     return company_code_list
+
+def moving_average(a, n=3) :
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
+def generally_increasing(lst, n=4):
+    return np.all(np.diff(moving_average(np.array(lst), n))>0)
+
+
     
