@@ -141,28 +141,28 @@ def get_asset(snapshot_tables, stadard_col_name):
     asset = asset * 100000000
     return asset
 
-def get_adequate_price(asset, roe, expected_ratio, stock_count, persist_factor = 1):
-    excess_profit = (roe - expected_ratio) * asset / 100
+def get_adequate_price(net_profit, roe, expected_ratio, stock_count, persist_factor = 1):
+    excess_profit = (roe - expected_ratio) * net_profit / 100
 #     print(excess_profit)
     accumulate_profit = (persist_factor * excess_profit) / (1 + expected_ratio / 100 - persist_factor)
-    adequate_stock_price = asset + accumulate_profit
+    adequate_stock_price = net_profit + accumulate_profit
 #     print(adequate_stock_price)
-    price = (asset + accumulate_profit) / stock_count
+    price = (net_profit + accumulate_profit) / stock_count
     price = int(round(price))
     return price
 
-def get_ex_profits(asset, expected_ratio, roe, persist_factor, iteration = 10):
-    next_asset = asset
+def get_ex_profits(net_profit, expected_ratio, roe, persist_factor, iteration = 10):
+    next_net_profit = net_profit
     ex_profits = []
     ex_profit_ratio = roe - expected_ratio
     next_roe = roe
     for _ in range(iteration):
         ex_profit_ratio = ex_profit_ratio * persist_factor
         next_roe = expected_ratio + ex_profit_ratio
-        profit = next_asset * (next_roe / 100)
-        ex_profit = next_asset * ex_profit_ratio / 100
+        profit = next_net_profit * (next_roe / 100)
+        ex_profit = next_net_profit * ex_profit_ratio / 100
         ex_profits.append(ex_profit)
-        next_asset = next_asset + profit
+        next_net_profit = next_net_profit + profit
     return ex_profits
 def get_npv_profit(ex_profits, expected_ratio):
     npv_value = 0
@@ -173,15 +173,15 @@ def get_npv_profit(ex_profits, expected_ratio):
 
     return npv_value
 
-def get_sum_of_profit(asset, expected_ratio, roe, persist_factor, iteration = 10):
-    ex_profits = get_ex_profits(asset, expected_ratio, roe, persist_factor, iteration)
+def get_sum_of_profit(net_profit, expected_ratio, roe, persist_factor, iteration = 10):
+    ex_profits = get_ex_profits(net_profit, expected_ratio, roe, persist_factor, iteration)
     sum_of_profit = get_npv_profit(ex_profits, expected_ratio)
     return sum_of_profit
 
-def get_more_adequate_price(asset, roe, expected_ratio, stock_count, persist_factor = 1, iteration = 10):
-    accumulate_profit = get_sum_of_profit(asset, expected_ratio, roe, persist_factor, iteration)
-    adequate_stock_price = asset + accumulate_profit
-    price = (asset + accumulate_profit) / stock_count
+def get_more_adequate_price(net_profit, roe, expected_ratio, stock_count, persist_factor = 1, iteration = 10):
+    accumulate_profit = get_sum_of_profit(net_profit, expected_ratio, roe, persist_factor, iteration)
+    adequate_stock_price = net_profit + accumulate_profit
+    price = (net_profit + accumulate_profit) / stock_count
     price = int(round(price))
     return price
 
