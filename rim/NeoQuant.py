@@ -4,6 +4,7 @@ import requests
 import bs4
 import math
 import time
+from datetime import date, timedelta
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rc
 pd.set_option('display.max_colwidth', -1)
@@ -120,6 +121,25 @@ def get_standard_col_name(snapshot_tables):
             break
     return stadard_col_name
 
+def get_base_year_name(fr_df):
+    big_col_name = 'Annual'
+    roe_index_name = 'ROE'
+    asset_index_name = '지배주주지분'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    stadard_col_name = ''
+    roes = info.loc[roe_index_name][big_col_name]
+    assets = info.loc[asset_index_name][big_col_name]
+    for index in reversed(assets.index):
+        if index.endswith(('(E)')):
+            continue
+        if not math.isnan(assets[index]) and not math.isnan(roes[index]):
+            stadard_col_name = index
+            break
+    return stadard_col_name
+
 def get_roe(snapshot_tables, stadard_col_name):
     big_col_name = 'Annual'
     roe_index_name = 'ROE'
@@ -138,6 +158,70 @@ def get_asset(snapshot_tables, stadard_col_name):
     info = info.set_index(info.columns[0])
 
     asset = info.loc[asset_index_name][big_col_name, stadard_col_name]
+    asset = asset * 100000000
+    return asset
+
+def get_roe2(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    roe_index_name = 'ROE'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    roe = info.loc[roe_index_name][big_col_name, base_year_name]
+    return roe
+
+def get_per(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    per_index_name = 'PER'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    per = info.loc[per_index_name][big_col_name, base_year_name]
+    return per
+
+def get_net_income(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    index_name = '당기순이익'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    income = info.loc[index_name][big_col_name, base_year_name]
+    income = income * 100000000
+    return income
+
+def get_net_profit(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    profit_index_name = '지배주주지분'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    profit = info.loc[profit_index_name][big_col_name, base_year_name]
+    profit = profit * 100000000
+    return profit
+
+def get_op_profit(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    profit_index_name = '영업이익'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    profit = info.loc[profit_index_name][big_col_name, base_year_name]
+    profit = profit * 100000000
+    return profit
+
+def get_asset2(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    asset_index_name = '자산총계'
+    
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    asset = info.loc[asset_index_name][big_col_name, base_year_name]
     asset = asset * 100000000
     return asset
 
@@ -305,7 +389,135 @@ def show_more_adequate_price_chart(company_name, companies, expected_ratio):
     
     show_price_chart(company_code, company_name, price_df)
     
+def get_fr_df_index(snapshot_tables):
+    fr_df_index = -1
+    for num, snapshot in enumerate(snapshot_tables):
+        if 'Annual' in snapshot.columns:
+            if len(snapshot['Annual'].columns) > 4:
+#                 print('bingo ' + str(num))
+                fr_df_index = num
+                break
+    return fr_df_index
+
+def get_year_name_list(fr_df):
+    big_col_name = 'Annual'
+    roe_index_name = 'ROE'
+    asset_index_name = '지배주주지분'
     
+    info = fr_df
+    info = info.set_index(info.columns[0])
+
+    year_name_list = []
+    
+    year_name = ''
+    roes = info.loc[roe_index_name][big_col_name]
+    assets = info.loc[asset_index_name][big_col_name]
+    for index in assets.index:
+#         if index.endswith(('(E)')):
+#             continue
+        if not math.isnan(assets[index]) and not math.isnan(roes[index]):
+            year_name = index
+#             year_name = str(pd.to_datetime(year_name).year)
+            year_name_list.append(year_name)
+    return year_name_list
+
+def show_sequence_adequate_price_chart(company_name, companies, base_profit_ratio):
+    company_code = get_company_code(company_name, companies)
+    print('company name : ' + company_name)
+    print('company code : ' + company_code)
+
+    if len(company_code) == 0:
+        print('>>> no company code with ' + company_name)
+        return
+
+    snapshot_tables = get_snapshot_from_fnguide(company_code)
+    
+    stock_count = get_total_stock_count(snapshot_tables) - get_self_stock_count(snapshot_tables)
+#     print('stock count : ' + str(stock_count))
+    
+    fr_df_index = get_fr_df_index(snapshot_tables)
+#     print('fr_df_index : ' + str(fr_df_index))
+    if fr_df_index < 0:
+        print('>>> fr df index fail : ' + str(fr_df_index))
+        return
+    fr_df = snapshot_tables[fr_df_index]
+    
+    year_name_list = get_year_name_list(fr_df)
+    
+    price_df = request_price_list(company_code, 'day', 1500)
+    price_df['price_very_low'] = 0
+    price_df['price_low'] = 0
+    price_df['price_middle'] = 0
+    price_df['price_high'] = 0
+    
+
+    final_year = price_df.iloc[-1].name.year
+
+    for year_name in year_name_list:
+    #     print(year_name)
+        roe =  get_roe2(fr_df, year_name)
+        net_profit = get_net_profit(fr_df, year_name)
+        per = get_per(fr_df, year_name)
+
+        price_high = get_more_adequate_price(net_profit, roe, base_profit_ratio, stock_count, 1)
+        price_middle = get_more_adequate_price(net_profit, roe, base_profit_ratio, stock_count, 0.9)
+        price_low = get_more_adequate_price(net_profit, roe, base_profit_ratio, stock_count, 0.8)
+        price_very_low = get_more_adequate_price(net_profit, roe, base_profit_ratio, stock_count, 0.5)
+
+
+        print('=====================================')
+        print('base year : ' + year_name)
+        print('net profit : ' + str(net_profit))
+        print('roe : ' + str(roe))
+        print('per : ' + str(per))
+        print('very low : ' + str(price_very_low))
+        print('buy : below ' + str(price_low))
+        print('sell 1/3 : ' + str(price_middle))
+        print('sell 1/3 : ' + str(price_high))
+
+
+    #     if (price_very_low >= price_low):
+    #         price_low = int(price_very_low * 1.05)
+    #         price_middle = int(price_low * 1.05)
+    #         price_high = int(price_middle * 1.05)
+
+    #         print('======= modify ===============')
+    #         print('very low : ' + str(price_very_low))
+    #         print('buy : below ' + str(price_low))
+    #         print('sell 1/3 : ' + str(price_middle))
+    #         print('sell 1/3 : ' + str(price_high))
+
+        if (year_name.endswith('(E)')):
+    #         continue
+            year_name = year_name.replace('(E)', '')
+
+        base_year = pd.to_datetime(year_name).year
+
+        if (base_year == final_year):
+            start_date = price_df.iloc[-1].name + timedelta(days=1)
+            end_date = pd.to_datetime(str(final_year) + '-12-31')
+            year_list = pd.date_range(start_date, end_date, freq='d')
+            year_df = pd.DataFrame(0, index=year_list, columns=price_df.columns)
+            price_df = price_df.append(year_df)
+
+        if (base_year > final_year):
+    #         print(base_year)
+            start_year = pd.to_datetime(str(base_year))
+            year_list = pd.date_range(start_year, freq=pd.DateOffset(days=1), periods=365)
+            year_df = pd.DataFrame(0, index=year_list, columns=price_df.columns)
+            price_df = price_df.append(year_df)
+
+        base_year = str(base_year)
+        try:
+            price_df.loc[base_year]['price_very_low'] = [price_very_low] * len(price_df.loc[base_year])
+            price_df.loc[base_year]['price_low'] = [price_low] * len(price_df.loc[base_year])
+            price_df.loc[base_year]['price_middle'] = [price_middle] * len(price_df.loc[base_year])
+            price_df.loc[base_year]['price_high'] = [price_high] * len(price_df.loc[base_year])
+        except KeyError:
+            print('key error')
+    
+    show_price_chart(company_code, company_name, price_df)
+        
 def get_total_stock_count(snapshot_tables):
     stock_count = 0
 
