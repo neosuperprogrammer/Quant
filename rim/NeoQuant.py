@@ -4,6 +4,7 @@ import requests
 import bs4
 import math
 import time
+import datetime
 from datetime import date, timedelta
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rc
@@ -399,7 +400,7 @@ def get_fr_df_index(snapshot_tables):
                 break
     return fr_df_index
 
-def get_year_name_list(fr_df):
+def get_year_name_list(fr_df, until_this_year = False):
     big_col_name = 'Annual'
     roe_index_name = 'ROE'
     asset_index_name = '지배주주지분'
@@ -412,16 +413,22 @@ def get_year_name_list(fr_df):
     year_name = ''
     roes = info.loc[roe_index_name][big_col_name]
     assets = info.loc[asset_index_name][big_col_name]
+    today_year = datetime.date.today().year
     for index in assets.index:
 #         if index.endswith(('(E)')):
 #             continue
+        if until_this_year:
+            year = int(index[:4])
+            if year > today_year:
+                continue
         if not math.isnan(assets[index]) and not math.isnan(roes[index]):
             year_name = index
 #             year_name = str(pd.to_datetime(year_name).year)
             year_name_list.append(year_name)
     return year_name_list
 
-def show_sequence_adequate_price_chart(company_name, companies, base_profit_ratio):
+
+def show_sequence_adequate_price_chart(company_name, companies, base_profit_ratio, until_this_year = False):
     company_code = get_company_code(company_name, companies)
     print('company name : ' + company_name)
     print('company code : ' + company_code)
@@ -442,7 +449,7 @@ def show_sequence_adequate_price_chart(company_name, companies, base_profit_rati
         return
     fr_df = snapshot_tables[fr_df_index]
     
-    year_name_list = get_year_name_list(fr_df)
+    year_name_list = get_year_name_list(fr_df, until_this_year)
     
     price_df = request_price_list(company_code, 'day', 1500)
     price_df['price_very_low'] = 0
