@@ -80,6 +80,8 @@ def get_company_code(name, company_df):
 #         print('no company code with ' + name)
         return ''
 
+def show_company_candidate(name, company_df):
+    return company_df[company_df['company'].str.contains(name)]
 
 def get_total_stock_count(snapshot_tables):
     stock_count = 0
@@ -499,6 +501,9 @@ def show_sequence_adequate_price_chart(company_name, companies, base_profit_rati
             year_name = year_name.replace('(E)', '')
 
         base_year = pd.to_datetime(year_name).year
+        final_year_price = price_df.loc[str(base_year)][company_code][-1]
+        print('final year price : ' + str(final_year_price))
+        print('dis rate : ' + str(final_year_price / price_low))
 
         if (base_year == final_year):
             start_date = price_df.iloc[-1].name + timedelta(days=1)
