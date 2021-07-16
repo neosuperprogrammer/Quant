@@ -228,6 +228,15 @@ def get_asset2(fr_df, base_year_name):
     asset = asset * 100000000
     return asset
 
+def get_dividend(fr_df, base_year_name):
+    big_col_name = 'Annual'
+    index_name = '배당수익률'
+    
+    fr_df = fr_df.set_index(fr_df.columns[0])
+
+    info = fr_df.loc[index_name][big_col_name, base_year_name]
+    return info
+
 def get_adequate_price(net_profit, roe, expected_ratio, stock_count, persist_factor = 1):
     excess_profit = (roe - expected_ratio) * net_profit / 100
 #     print(excess_profit)
@@ -467,6 +476,7 @@ def show_sequence_adequate_price_chart(company_name, companies, base_profit_rati
         roe =  get_roe2(fr_df, year_name)
         net_profit = get_net_profit(fr_df, year_name)
         per = get_per(fr_df, year_name)
+        dividend = get_dividend(fr_df, year_name)
 
         price_high = get_more_adequate_price(net_profit, roe, base_profit_ratio, stock_count, 1)
         price_middle = get_more_adequate_price(net_profit, roe, base_profit_ratio, stock_count, 0.9)
@@ -479,6 +489,7 @@ def show_sequence_adequate_price_chart(company_name, companies, base_profit_rati
         print('net profit : ' + str(net_profit))
         print('roe : ' + str(roe))
         print('per : ' + str(per))
+        print('dividend : ' + str(dividend))
         print('very low : ' + str(price_very_low))
         print('buy : below ' + str(price_low))
         print('sell 1/3 : ' + str(price_middle))
@@ -501,9 +512,15 @@ def show_sequence_adequate_price_chart(company_name, companies, base_profit_rati
             year_name = year_name.replace('(E)', '')
 
         base_year = pd.to_datetime(year_name).year
-        final_year_price = price_df.loc[str(base_year)][company_code][-1]
-        print('final year price : ' + str(final_year_price))
-        print('dis rate : ' + str(final_year_price / price_low))
+        try:
+            final_year_price = price_df.loc[str(base_year)][company_code][-1]
+            print('final year price : ' + str(final_year_price))
+            if price_low < price_high:
+                print('dis rate : ' + str(final_year_price / price_low))
+            else:
+                print('dis rate : ' + str(final_year_price / price_high))
+        except KeyError:
+            print('key error')
 
         if (base_year == final_year):
             start_date = price_df.iloc[-1].name + timedelta(days=1)
@@ -518,6 +535,7 @@ def show_sequence_adequate_price_chart(company_name, companies, base_profit_rati
             year_list = pd.date_range(start_year, freq=pd.DateOffset(days=1), periods=365)
             year_df = pd.DataFrame(0, index=year_list, columns=price_df.columns)
             price_df = price_df.append(year_df)
+
 
         base_year = str(base_year)
         try:
